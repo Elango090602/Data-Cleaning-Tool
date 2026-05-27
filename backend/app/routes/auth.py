@@ -52,8 +52,8 @@ class VerifyOTPRequest(BaseModel):
 def send_otp_via_email(email: str, otp: str) -> bool:
     smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
     smtp_port = int(os.getenv("SMTP_PORT", "587"))
-    smtp_user = os.getenv("SMTP_USER", "")
-    smtp_password = os.getenv("SMTP_PASSWORD", "")
+    smtp_user = os.getenv("SMTP_USER", "").strip()
+    smtp_password = os.getenv("SMTP_PASSWORD", "").replace(" ", "")
     smtp_from_name = os.getenv("SMTP_FROM_NAME", "Lead Sanitizer App")
 
     if not smtp_user or "your_gmail" in smtp_user or not smtp_password:
@@ -304,10 +304,15 @@ async def google_callback(payload: GoogleCallbackRequest, background_tasks: Back
                 
                 background_tasks.add_task(send_resend_otp, email, otp)
                 
+                smtp_user = os.getenv("SMTP_USER", "")
+                resend_api_key = os.getenv("RESEND_API_KEY", "")
+                is_sandbox = not (smtp_user and "your_gmail" not in smtp_user) and not (resend_api_key and "YOUR_" not in resend_api_key)
+                
                 return {
                     "status": "UNVERIFIED_USER_OTP_SENT",
                     "email": email,
-                    "message": "Verification code sent to your email."
+                    "message": "Verification code sent to your email.",
+                    "sandbox": is_sandbox
                 }
         else:
             # Create a new user record
@@ -328,10 +333,15 @@ async def google_callback(payload: GoogleCallbackRequest, background_tasks: Back
             
             background_tasks.add_task(send_resend_otp, email, otp)
             
+            smtp_user = os.getenv("SMTP_USER", "")
+            resend_api_key = os.getenv("RESEND_API_KEY", "")
+            is_sandbox = not (smtp_user and "your_gmail" not in smtp_user) and not (resend_api_key and "YOUR_" not in resend_api_key)
+            
             return {
                 "status": "NEW_USER_OTP_SENT",
                 "email": email,
-                "message": "Verification code sent to your email."
+                "message": "Verification code sent to your email.",
+                "sandbox": is_sandbox
             }
     else:  # signin flow
         if not user:
@@ -380,10 +390,15 @@ async def google_callback(payload: GoogleCallbackRequest, background_tasks: Back
                 
                 background_tasks.add_task(send_resend_otp, email, otp)
                 
+                smtp_user = os.getenv("SMTP_USER", "")
+                resend_api_key = os.getenv("RESEND_API_KEY", "")
+                is_sandbox = not (smtp_user and "your_gmail" not in smtp_user) and not (resend_api_key and "YOUR_" not in resend_api_key)
+                
                 return {
                     "status": "UNVERIFIED_USER_OTP_SENT",
                     "email": email,
-                    "message": "Verification code sent to your email."
+                    "message": "Verification code sent to your email.",
+                    "sandbox": is_sandbox
                 }
 
 # ─── Dynamic Account Selector Sandbox Handler ───
@@ -655,9 +670,14 @@ def resend_otp_secure(payload: ResendOtpSecureRequest, background_tasks: Backgro
     
     background_tasks.add_task(send_resend_otp, email, otp)
     
+    smtp_user = os.getenv("SMTP_USER", "")
+    resend_api_key = os.getenv("RESEND_API_KEY", "")
+    is_sandbox = not (smtp_user and "your_gmail" not in smtp_user) and not (resend_api_key and "YOUR_" not in resend_api_key)
+    
     return {
         "success": True,
-        "message": "A fresh verification code has been dispatched."
+        "message": "A fresh verification code has been dispatched.",
+        "sandbox": is_sandbox
     }
 
 # ─── Persistent User Profile Persistence (SQL Database) ───

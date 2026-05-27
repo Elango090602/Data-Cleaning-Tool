@@ -166,7 +166,7 @@ export default function LandingPage({ onEnterApp }) {
       setShowLoginModal(true);
       setOtpSent(true);
       setCountdown(60);
-      setSandboxNotice(true);
+      setSandboxNotice(response.sandbox);
       setOtpError("");
       setOtpCode("");
       setSuccessMessage("We sent a verification code to your email.");
@@ -308,7 +308,7 @@ export default function LandingPage({ onEnterApp }) {
       if (response.success) {
         setOtpSent(true);
         setCountdown(60);
-        setSandboxNotice(true);
+        setSandboxNotice(response.sandbox);
         setSuccessMessage("A fresh verification code has been sent.");
       }
     } catch (err) {
