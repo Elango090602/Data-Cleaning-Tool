@@ -219,6 +219,11 @@ def get_google_auth_url():
     client_id = os.getenv("GOOGLE_CLIENT_ID", "")
     redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "")
     
+    if not redirect_uri:
+        # Dynamically build it from APP_URL / app_url if set, otherwise default to local
+        app_url = os.getenv("APP_URL", os.getenv("app_url", "http://localhost:5173")).rstrip("/")
+        redirect_uri = f"{app_url}/auth/callback"
+    
     scope = "openid profile email"
     google_url = f"https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id={client_id}&redirect_uri={redirect_uri}&scope={scope}&state=secure-state&prompt=select_account"
     
@@ -249,7 +254,9 @@ async def google_callback(payload: GoogleCallbackRequest, background_tasks: Back
         })
         
         if token_response.status_code != 200:
-            raise HTTPException(status_code=400, detail="Invalid authorization code or OAuth exchange failed.")
+            err_details = token_response.text
+            print(f"[GOOGLE OAUTH ERROR] Code exchange failed: Status {token_response.status_code}, Body: {err_details}")
+            raise HTTPException(status_code=400, detail=f"Google OAuth exchange failed: {err_details}")
             
         tokens = token_response.json()
         access_token = tokens.get("access_token")
