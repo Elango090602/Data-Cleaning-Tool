@@ -84,7 +84,7 @@ def send_otp_via_email(email: str, otp: str) -> bool:
     msg.attach(MIMEText(html_content, "html"))
 
     try:
-        server = smtplib.SMTP(smtp_host, smtp_port)
+        server = smtplib.SMTP(smtp_host, smtp_port, timeout=5)
         server.starttls()
         server.login(smtp_user, smtp_password)
         server.sendmail(smtp_user, email, msg.as_string())
