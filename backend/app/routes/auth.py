@@ -217,7 +217,7 @@ class GoogleCallbackRequest(BaseModel):
 @router.get("/google-url")
 def get_google_auth_url():
     client_id = os.getenv("GOOGLE_CLIENT_ID", "")
-    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:5173/auth/callback")
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "")
     
     scope = "openid profile email"
     google_url = f"https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id={client_id}&redirect_uri={redirect_uri}&scope={scope}&state=secure-state&prompt=select_account"
