@@ -49,7 +49,7 @@ class VerifyOTPRequest(BaseModel):
         return v_clean
 
 # ─── Legacy SMTP / Sandbox Email Fallback ───
-def send_otp_via_email(email: str, otp: str):
+def send_otp_via_email(email: str, otp: str) -> bool:
     smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
     smtp_port = int(os.getenv("SMTP_PORT", "587"))
     smtp_user = os.getenv("SMTP_USER", "")
@@ -62,7 +62,7 @@ def send_otp_via_email(email: str, otp: str):
         print(f" OTP CODE FOR [ {email} ]:  {otp}")
         print(" To receive real emails, update your .env with Gmail SMTP keys!")
         print("="*60 + "\n")
-        return
+        return False
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = f"{otp} is your Lead Sanitizer Verification Code"
@@ -90,12 +90,14 @@ def send_otp_via_email(email: str, otp: str):
         server.sendmail(smtp_user, email, msg.as_string())
         server.quit()
         print(f"[SMTP] Verification email successfully sent to {email}")
+        return True
     except Exception as e:
         print(f"[SMTP] Failed to send SMTP email: {e}")
         print("\n" + "="*60)
         print(" [SMTP] SMTP SEND ERROR FALLBACK ACTIVE")
         print(f" OTP CODE FOR [ {email} ]:  {otp}")
         print("="*60 + "\n")
+        return False
 
 # ─── OTP Email Sender: SMTP → Resend API → Console Fallback ───
 def send_resend_otp(email: str, otp: str):
@@ -104,8 +106,10 @@ def send_resend_otp(email: str, otp: str):
     smtp_password = os.getenv("SMTP_PASSWORD", "")
     if smtp_user and smtp_password and "your_gmail" not in smtp_user:
         try:
-            send_otp_via_email(email, otp)
-            return
+            success = send_otp_via_email(email, otp)
+            if success:
+                return
+            print("[SMTP] Failed to deliver email. Falling back to Resend API...")
         except Exception as e:
             print(f"[SMTP] Failed, falling through to Resend API: {e}")
 
