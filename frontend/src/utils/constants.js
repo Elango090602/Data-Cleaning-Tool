@@ -1,0 +1,21 @@
+export const STANDARD_FIELDS = [
+  "First Name",
+  "Last Name",
+  "Full Name",
+  "Job Title",
+  "Company Name",
+  "Company Website",
+  "Email",
+  "Phone Number",
+  "Mobile Number",
+  "LinkedIn Profile URL",
+  "City",
+  "State",
+  "Country",
+  "Industry",
+  "Employee Size",
+  "Revenue",
+  "Lead Source",
+  "Data Quality Status",
+  "Cleaning Remarks"
+];

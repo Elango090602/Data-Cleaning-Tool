@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+jspm_packages/
+web_modules/
+.venv/
+venv/
+ENV/
+env/
+
+# Production builds
+dist/
+build/
+
+# Python cache and bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment files (sensitive credentials)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Application temp files and logs
+tmp/
+logs/
+*.log
+.DS_Store
+.vscode/
+.idea/
