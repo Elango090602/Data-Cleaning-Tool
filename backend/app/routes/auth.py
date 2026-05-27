@@ -220,8 +220,13 @@ def get_google_auth_url():
     redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "")
     
     if not redirect_uri:
-        # Dynamically build it from APP_URL / app_url if set, otherwise default to local
-        app_url = os.getenv("APP_URL", os.getenv("app_url", "http://localhost:5173")).rstrip("/")
+        # Dynamically build it from APP_URL / app_url environment variable if set
+        app_url = os.getenv("APP_URL", os.getenv("app_url", "")).rstrip("/")
+        if not app_url:
+            raise HTTPException(
+                status_code=500,
+                detail="Google OAuth misconfigured: Neither GOOGLE_REDIRECT_URI nor APP_URL / app_url is set in the environment variables."
+            )
         redirect_uri = f"{app_url}/auth/callback"
     
     scope = "openid profile email"

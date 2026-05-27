@@ -19,10 +19,10 @@ app = FastAPI(
 )
 
 # Configure CORS
-allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174")
-if not allowed_origins_str.strip():
-    allowed_origins_str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174"
-allowed_origins = allowed_origins_str.split(",")
+allowed_origins_raw = os.getenv("ALLOWED_ORIGINS")
+if not allowed_origins_raw:
+    raise RuntimeError("ALLOWED_ORIGINS environment variable is not configured in the environment / .env file.")
+allowed_origins = allowed_origins_raw.split(",")
 
 app.add_middleware(
     CORSMiddleware,
