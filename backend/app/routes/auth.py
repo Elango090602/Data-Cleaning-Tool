@@ -49,112 +49,59 @@ class VerifyOTPRequest(BaseModel):
         return v_clean
 
 # ─── Legacy SMTP / Sandbox Email Fallback ───
-def send_otp_via_email(email: str, otp: str) -> bool:
-    smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
-    smtp_port = int(os.getenv("SMTP_PORT", "587"))
-    smtp_user = os.getenv("SMTP_USER", "").strip()
-    smtp_password = os.getenv("SMTP_PASSWORD", "").replace(" ", "")
-    smtp_from_name = os.getenv("SMTP_FROM_NAME", "Lead Sanitizer App")
-
-    if not smtp_user or "your_gmail" in smtp_user or not smtp_password:
-        print("\n" + "="*60)
-        print(" [SANDBOX] DEVELOPMENT SANDBOX FALLBACK ACTIVE (SMTP NOT CONFIGURED)")
-        print(f" OTP CODE FOR [ {email} ]:  {otp}")
-        print(" To receive real emails, update your .env with Gmail SMTP keys!")
-        print("="*60 + "\n")
-        return False
-
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"{otp} is your Lead Sanitizer Verification Code"
-    msg["From"] = f"{smtp_from_name} <{smtp_user}>"
-    msg["To"] = email
-
-    html_content = f"""
-        <div style="font-family: Inter, sans-serif; max-width: 480px; margin: 20px auto; padding: 32px; border: 1px solid #f1f5f9; border-radius: 20px; background: #ffffff; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);">
-            <h2 style="color: #4f46e5; font-size: 24px; font-weight: 800; text-align: center; margin-bottom: 24px;">LeadSanity Security</h2>
-            <p style="color: #475569; font-size: 14px; line-height: 1.6; text-align: center;">Enter the following secure 6-digit OTP code to verify your workspace access:</p>
-            <div style="text-align: center; margin: 32px 0;">
-                <span style="font-size: 36px; font-weight: 800; color: #1e1b4b; background: #f0fdf4; padding: 12px 28px; border-radius: 12px; display: inline-block; letter-spacing: 4px; border: 1px solid #dcfce7;">
-                    {otp}
-                </span>
-            </div>
-            <p style="color: #94a3b8; font-size: 11px; text-align: center; line-height: 1.5; margin-top: 32px;">This code will expire in 5 minutes. Secure verification powered by LeadSanity.</p>
-        </div>
-    """
-    msg.attach(MIMEText(html_content, "html"))
-
-    try:
-        server = smtplib.SMTP(smtp_host, smtp_port, timeout=5)
-        server.starttls()
-        server.login(smtp_user, smtp_password)
-        server.sendmail(smtp_user, email, msg.as_string())
-        server.quit()
-        print(f"[SMTP] Verification email successfully sent to {email}")
-        return True
-    except Exception as e:
-        print(f"[SMTP] Failed to send SMTP email: {e}")
-        print("\n" + "="*60)
-        print(" [SMTP] SMTP SEND ERROR FALLBACK ACTIVE")
-        print(f" OTP CODE FOR [ {email} ]:  {otp}")
-        print("="*60 + "\n")
-        return False
-
-# ─── OTP Email Sender: SMTP → Resend API → Console Fallback ───
-def send_resend_otp(email: str, otp: str):
-    # Priority 1: SMTP (Gmail App Password — most reliable for any recipient)
-    smtp_user = os.getenv("SMTP_USER", "")
-    smtp_password = os.getenv("SMTP_PASSWORD", "")
-    if smtp_user and smtp_password and "your_gmail" not in smtp_user:
+# ─── Resend HTTP API OTP Dispatcher ───
+def send_otp_via_resend(email: str, otp: str):
+    resend_api_key = os.getenv("RESEND_API_KEY", "").strip()
+    
+    # Priority 1: Resend HTTP API
+    if resend_api_key and "YOUR_" not in resend_api_key:
         try:
-            success = send_otp_via_email(email, otp)
-            if success:
-                return
-            print("[SMTP] Failed to deliver email. Falling back to Resend API...")
-        except Exception as e:
-            print(f"[SMTP] Failed, falling through to Resend API: {e}")
+            # Resolve the sender address
+            resend_sender = os.getenv("RESEND_SENDER", "").strip()
+            if not resend_sender:
+                app_url = os.getenv("APP_URL", "").lower()
+                if "localhost" in app_url or not app_url:
+                    resend_sender = "LeadSanity <onboarding@resend.dev>"
+                else:
+                    resend_sender = "LeadSanity <otp@leadsanity.com>"
 
-    # Priority 2: Resend API
-    resend_api_key = os.getenv("RESEND_API_KEY", "")
-    if resend_api_key and resend_api_key.strip() and "YOUR_" not in resend_api_key:
-        try:
             url = "https://api.resend.com/emails"
             headers = {
                 "Authorization": f"Bearer {resend_api_key}",
                 "Content-Type": "application/json"
             }
             data = {
-                "from": "LeadSanity Security <onboarding@resend.dev>",
+                "from": resend_sender,
                 "to": [email],
                 "subject": f"{otp} is your LeadSanity Verification Code",
                 "html": f"""
-                    <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px;">
-                        <h2 style="color: #4f46e5; text-align: center;">LeadSanity Security</h2>
-                        <p style="color: #475569; font-size: 14px; text-align: center;">Use the secure verification code below to complete your sign-in:</p>
-                        <div style="text-align: center; margin: 30px 0;">
-                            <span style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #1e293b; background: #f1f5f9; padding: 12px 24px; border-radius: 8px; display: inline-block;">
+                    <div style="font-family: Inter, sans-serif; max-width: 480px; margin: 20px auto; padding: 32px; border: 1px solid #f1f5f9; border-radius: 20px; background: #ffffff; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);">
+                        <h2 style="color: #4f46e5; font-size: 24px; font-weight: 800; text-align: center; margin-bottom: 24px;">LeadSanity Security</h2>
+                        <p style="color: #475569; font-size: 14px; line-height: 1.6; text-align: center;">Enter the following secure 6-digit OTP code to verify your workspace access:</p>
+                        <div style="text-align: center; margin: 32px 0;">
+                            <span style="font-size: 36px; font-weight: 800; color: #1e1b4b; background: #f0fdf4; padding: 12px 28px; border-radius: 12px; display: inline-block; letter-spacing: 4px; border: 1px solid #dcfce7;">
                                 {otp}
                             </span>
                         </div>
-                        <p style="color: #94a3b8; font-size: 11px; text-align: center;">
-                            This code will expire in 10 minutes. If you did not request this, please disregard this email.
-                        </p>
+                        <p style="color: #94a3b8; font-size: 11px; text-align: center; line-height: 1.5; margin-top: 32px;">This code will expire in 10 minutes. Secure verification powered by LeadSanity.</p>
                     </div>
                 """
             }
-            response = httpx.post(url, json=data, headers=headers)
+            response = httpx.post(url, json=data, headers=headers, timeout=10.0)
             if response.status_code in [200, 201]:
                 print(f"[RESEND] Secure email dispatched successfully to {email}")
-                return
+                return True
             else:
                 print(f"[RESEND Error]: Status {response.status_code} - {response.text}")
         except Exception as e:
             print(f"[RESEND Exception]: {e}")
 
-    # Priority 3: Console fallback (development sandbox)
+    # Priority 2: Console fallback (development sandbox)
     print("\n" + "="*60)
     print(" [SANDBOX] EMAIL DELIVERY FAILED — CONSOLE FALLBACK")
     print(f" OTP CODE FOR [ {email} ]:  {otp}")
     print("="*60 + "\n")
+    return False
 
 # ─── Legacy OTP Endpoints ───
 @router.post("/send-otp")
@@ -165,9 +112,9 @@ def send_otp(payload: SendOTPRequest, background_tasks: BackgroundTasks):
         "otp": otp,
         "expires_at": time.time() + 300.0
     }
-    background_tasks.add_task(send_otp_via_email, email, otp)
-    smtp_user = os.getenv("SMTP_USER", "")
-    is_sandbox = not smtp_user or "your_gmail" in smtp_user
+    background_tasks.add_task(send_otp_via_resend, email, otp)
+    resend_api_key = os.getenv("RESEND_API_KEY", "")
+    is_sandbox = not resend_api_key or "YOUR_" in resend_api_key or not resend_api_key.strip()
     return {
         "success": True,
         "message": "Verification code dispatched.",
@@ -314,11 +261,10 @@ async def google_callback(payload: GoogleCallbackRequest, background_tasks: Back
                 conn.commit()
                 conn.close()
                 
-                background_tasks.add_task(send_resend_otp, email, otp)
+                background_tasks.add_task(send_otp_via_resend, email, otp)
                 
-                smtp_user = os.getenv("SMTP_USER", "")
                 resend_api_key = os.getenv("RESEND_API_KEY", "")
-                is_sandbox = not (smtp_user and "your_gmail" not in smtp_user) and not (resend_api_key and "YOUR_" not in resend_api_key)
+                is_sandbox = not resend_api_key or "YOUR_" in resend_api_key or not resend_api_key.strip()
                 
                 return {
                     "status": "UNVERIFIED_USER_OTP_SENT",
@@ -343,11 +289,10 @@ async def google_callback(payload: GoogleCallbackRequest, background_tasks: Back
             conn.commit()
             conn.close()
             
-            background_tasks.add_task(send_resend_otp, email, otp)
+            background_tasks.add_task(send_otp_via_resend, email, otp)
             
-            smtp_user = os.getenv("SMTP_USER", "")
             resend_api_key = os.getenv("RESEND_API_KEY", "")
-            is_sandbox = not (smtp_user and "your_gmail" not in smtp_user) and not (resend_api_key and "YOUR_" not in resend_api_key)
+            is_sandbox = not resend_api_key or "YOUR_" in resend_api_key or not resend_api_key.strip()
             
             return {
                 "status": "NEW_USER_OTP_SENT",
@@ -400,11 +345,10 @@ async def google_callback(payload: GoogleCallbackRequest, background_tasks: Back
                 conn.commit()
                 conn.close()
                 
-                background_tasks.add_task(send_resend_otp, email, otp)
+                background_tasks.add_task(send_otp_via_resend, email, otp)
                 
-                smtp_user = os.getenv("SMTP_USER", "")
                 resend_api_key = os.getenv("RESEND_API_KEY", "")
-                is_sandbox = not (smtp_user and "your_gmail" not in smtp_user) and not (resend_api_key and "YOUR_" not in resend_api_key)
+                is_sandbox = not resend_api_key or "YOUR_" in resend_api_key or not resend_api_key.strip()
                 
                 return {
                     "status": "UNVERIFIED_USER_OTP_SENT",
@@ -460,7 +404,7 @@ def google_login_simulated(payload: GoogleLoginRequest, background_tasks: Backgr
                 conn.commit()
                 conn.close()
                 
-                background_tasks.add_task(send_resend_otp, email, otp)
+                background_tasks.add_task(send_otp_via_resend, email, otp)
                 
                 return {
                     "status": "UNVERIFIED_USER_OTP_SENT",
@@ -484,7 +428,7 @@ def google_login_simulated(payload: GoogleLoginRequest, background_tasks: Backgr
             conn.commit()
             conn.close()
             
-            background_tasks.add_task(send_resend_otp, email, otp)
+            background_tasks.add_task(send_otp_via_resend, email, otp)
             
             return {
                 "status": "NEW_USER_OTP_SENT",
@@ -536,7 +480,7 @@ def google_login_simulated(payload: GoogleLoginRequest, background_tasks: Backgr
                 conn.commit()
                 conn.close()
                 
-                background_tasks.add_task(send_resend_otp, email, otp)
+                background_tasks.add_task(send_otp_via_resend, email, otp)
                 
                 return {
                     "status": "UNVERIFIED_USER_OTP_SENT",
@@ -680,11 +624,10 @@ def resend_otp_secure(payload: ResendOtpSecureRequest, background_tasks: Backgro
     conn.commit()
     conn.close()
     
-    background_tasks.add_task(send_resend_otp, email, otp)
+    background_tasks.add_task(send_otp_via_resend, email, otp)
     
-    smtp_user = os.getenv("SMTP_USER", "")
     resend_api_key = os.getenv("RESEND_API_KEY", "")
-    is_sandbox = not (smtp_user and "your_gmail" not in smtp_user) and not (resend_api_key and "YOUR_" not in resend_api_key)
+    is_sandbox = not resend_api_key or "YOUR_" in resend_api_key or not resend_api_key.strip()
     
     return {
         "success": True,
