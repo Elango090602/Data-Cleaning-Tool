@@ -926,8 +926,10 @@ export default function LandingPage({ onEnterApp }) {
             </div>
             <span className="font-bold text-slate-800 text-[14px]">LeadSanity Pro</span>
           </div>
-          <p className="text-slate-500 text-[11px] sm:text-[12px]">
-            © {new Date().getFullYear()} LeadSanity. Enterprise-grade lead data hygiene.
+          <p className="text-slate-500 text-[11px] sm:text-[12px] flex flex-wrap items-center gap-1.5 justify-center sm:justify-end">
+            <span>© {new Date().getFullYear()} LeadSanity. Enterprise-grade lead data hygiene.</span>
+            <span className="hidden sm:inline text-slate-300">|</span>
+            <span>Developed by <a href="https://elangov.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-700 font-bold transition-colors">Elango V</a></span>
           </p>
         </div>
       </footer>
