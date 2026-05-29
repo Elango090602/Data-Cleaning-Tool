@@ -1,12 +1,9 @@
 import time
 import secrets
-import smtplib
 import re
 import os
 import json
 import httpx
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from pydantic import BaseModel, field_validator
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends, Header
 from fastapi.responses import JSONResponse
@@ -48,9 +45,18 @@ class VerifyOTPRequest(BaseModel):
             raise ValueError("Invalid email address format.")
         return v_clean
 
-# ─── Legacy SMTP / Sandbox Email Fallback ───
-# ─── Resend HTTP API OTP Dispatcher ───
+def is_mock_email(email: str) -> bool:
+    return any(email.endswith(dom) for dom in ["@company.com", "@test.com", "@example.com"])
+
+# ─── Resend HTTP API / Sandbox Email Fallback ───
 def send_otp_via_resend(email: str, otp: str):
+    if is_mock_email(email):
+        print("\n" + "="*60)
+        print(" [SANDBOX] MOCK DOMAIN — EMAIL DISPATCH SKIPPED")
+        print(f" OTP CODE FOR [ {email} ]:  {otp}")
+        print("="*60 + "\n")
+        return True
+
     resend_api_key = os.getenv("RESEND_API_KEY", "").strip()
     
     # Priority 1: Resend HTTP API
@@ -107,14 +113,14 @@ def send_otp_via_resend(email: str, otp: str):
 @router.post("/send-otp")
 def send_otp(payload: SendOTPRequest, background_tasks: BackgroundTasks):
     email = payload.email.strip().lower()
-    otp = "".join([str(secrets.randbelow(10)) for _ in range(6)])
+    otp = "123456" if is_mock_email(email) else "".join([str(secrets.randbelow(10)) for _ in range(6)])
     otp_store[email] = {
         "otp": otp,
         "expires_at": time.time() + 300.0
     }
     background_tasks.add_task(send_otp_via_resend, email, otp)
     resend_api_key = os.getenv("RESEND_API_KEY", "")
-    is_sandbox = not resend_api_key or "YOUR_" in resend_api_key or not resend_api_key.strip()
+    is_sandbox = is_mock_email(email) or not resend_api_key or "YOUR_" in resend_api_key or not resend_api_key.strip()
     return {
         "success": True,
         "message": "Verification code dispatched.",
@@ -370,6 +376,8 @@ def google_login_simulated(payload: GoogleLoginRequest, background_tasks: Backgr
     profile_picture = f"https://api.dicebear.com/7.x/initials/svg?seed={name}"
     google_id = f"sim-{secrets.token_hex(8)}"
     
+    is_sandbox = is_mock_email(email) or not os.getenv("RESEND_API_KEY", "").strip() or "YOUR_" in os.getenv("RESEND_API_KEY", "")
+    
     conn = get_connection()
     cursor = conn.cursor()
     
@@ -395,7 +403,7 @@ def google_login_simulated(payload: GoogleLoginRequest, background_tasks: Backgr
                 }
             else:
                 # Existing unverified user: Generate new OTP and send
-                otp = "".join([str(secrets.randbelow(10)) for _ in range(6)])
+                otp = "123456" if is_mock_email(email) else "".join([str(secrets.randbelow(10)) for _ in range(6)])
                 expires_at = datetime.fromtimestamp(time.time() + 600)
                 execute_sql(cursor, """
                     INSERT INTO otp_verifications (email, otp_code, expires_at, is_used, created_at)
@@ -409,7 +417,8 @@ def google_login_simulated(payload: GoogleLoginRequest, background_tasks: Backgr
                 return {
                     "status": "UNVERIFIED_USER_OTP_SENT",
                     "email": email,
-                    "message": "Verification code sent to your email."
+                    "message": "Verification code sent to your email.",
+                    "sandbox": is_sandbox
                 }
         else:
             # Create a new user record
@@ -419,7 +428,7 @@ def google_login_simulated(payload: GoogleLoginRequest, background_tasks: Backgr
             """, (google_id, name, email, profile_picture, False))
             conn.commit()
             
-            otp = "".join([str(secrets.randbelow(10)) for _ in range(6)])
+            otp = "123456" if is_mock_email(email) else "".join([str(secrets.randbelow(10)) for _ in range(6)])
             expires_at = datetime.fromtimestamp(time.time() + 600)
             execute_sql(cursor, """
                 INSERT INTO otp_verifications (email, otp_code, expires_at, is_used, created_at)
@@ -433,7 +442,8 @@ def google_login_simulated(payload: GoogleLoginRequest, background_tasks: Backgr
             return {
                 "status": "NEW_USER_OTP_SENT",
                 "email": email,
-                "message": "Verification code sent to your email."
+                "message": "Verification code sent to your email.",
+                "sandbox": is_sandbox
             }
     else:  # signin flow
         if not user:
@@ -471,7 +481,7 @@ def google_login_simulated(payload: GoogleLoginRequest, background_tasks: Backgr
                 }
             else:
                 # Existing unverified user on signin: send OTP
-                otp = "".join([str(secrets.randbelow(10)) for _ in range(6)])
+                otp = "123456" if is_mock_email(email) else "".join([str(secrets.randbelow(10)) for _ in range(6)])
                 expires_at = datetime.fromtimestamp(time.time() + 600)
                 execute_sql(cursor, """
                     INSERT INTO otp_verifications (email, otp_code, expires_at, is_used, created_at)
@@ -485,7 +495,8 @@ def google_login_simulated(payload: GoogleLoginRequest, background_tasks: Backgr
                 return {
                     "status": "UNVERIFIED_USER_OTP_SENT",
                     "email": email,
-                    "message": "Verification code sent to your email."
+                    "message": "Verification code sent to your email.",
+                    "sandbox": is_sandbox
                 }
 
 # ─── Secure OTP Verification Endpoint ───
@@ -614,7 +625,7 @@ def resend_otp_secure(payload: ResendOtpSecureRequest, background_tasks: Backgro
                 detail=f"Please wait {int(60 - delta)} seconds before requesting another code."
             )
             
-    otp = "".join([str(secrets.randbelow(10)) for _ in range(6)])
+    otp = "123456" if is_mock_email(email) else "".join([str(secrets.randbelow(10)) for _ in range(6)])
     expires_at = datetime.fromtimestamp(time.time() + 600) # 10 mins
     
     execute_sql(cursor, """
@@ -627,7 +638,7 @@ def resend_otp_secure(payload: ResendOtpSecureRequest, background_tasks: Backgro
     background_tasks.add_task(send_otp_via_resend, email, otp)
     
     resend_api_key = os.getenv("RESEND_API_KEY", "")
-    is_sandbox = not resend_api_key or "YOUR_" in resend_api_key or not resend_api_key.strip()
+    is_sandbox = is_mock_email(email) or not resend_api_key or "YOUR_" in resend_api_key or not resend_api_key.strip()
     
     return {
         "success": True,

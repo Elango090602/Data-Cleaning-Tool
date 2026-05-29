@@ -12,17 +12,33 @@ def get_current_user(authorization: str = Header(None)):
         raise HTTPException(status_code=401, detail="Session expired or invalid token.")
         
     email = payload["email"]
-    
     conn = get_connection()
     cursor = conn.cursor()
     
     execute_sql(cursor, "SELECT id, email, name, profile_picture, otp_verified FROM users WHERE email = ?", (email,))
     user = cursor.fetchone()
-    conn.close()
     
     if not user:
-        raise HTTPException(status_code=401, detail="User profile not registered.")
+        # Auto-register user from JWT info (since Supabase already verified them)
+        name = email.split("@")[0].capitalize()
+        profile_picture = f"https://api.dicebear.com/7.x/initials/svg?seed={name}"
+        user_metadata = payload.get("user_metadata", {})
+        if isinstance(user_metadata, dict):
+            name = user_metadata.get("name", user_metadata.get("full_name", name))
+            profile_picture = user_metadata.get("avatar_url", user_metadata.get("picture", profile_picture))
+            
+        execute_sql(cursor, """
+            INSERT INTO users (google_id, name, email, profile_picture, otp_verified, created_at, last_login)
+            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        """, (payload.get("sub", ""), name, email, profile_picture, True))
+        conn.commit()
         
+        # Fetch again
+        execute_sql(cursor, "SELECT id, email, name, profile_picture, otp_verified FROM users WHERE email = ?", (email,))
+        user = cursor.fetchone()
+        
+    conn.close()
+
     # SQLite tuple row vs psycopg2 dict row compatibility
     if isinstance(user, tuple) or isinstance(user, list):
         user_id, u_email, u_name, u_pic, otp_verified = user

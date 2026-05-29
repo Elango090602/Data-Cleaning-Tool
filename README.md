@@ -6,7 +6,7 @@ LeadSanity is an enterprise-grade GTM lead data hygiene and formatting platform.
 
 ## 🚀 Key Features
 
-*   **Secure Passwordless Authentication**: Dynamic OTP-based login (6-digit code sent via SMTP or Resend API).
+*   **Secure Passwordless Authentication**: Dynamic OTP-based login (6-digit code sent via Resend HTTP API).
 *   **Google OAuth Integration**: Flow-based ("signup" and "signin") authentication that guards against account overwrite and missing accounts.
 *   **Intelligent Field Mapping**: Automated detection and grouping of lead sheets (Emails, Names, Phone Numbers, Companies, Job Titles).
 *   **Advanced Deduplication**: Flags and separates clean entries from duplicates/errors into distinct CSV outputs.
@@ -63,7 +63,7 @@ zoominfo-lead-cleaner/
    ```bash
    pip install -r requirements.txt
    ```
-4. Configure environment variables. Copy `.env.example` to `.env` and fill in SMTP and Google OAuth parameters.
+4. Configure environment variables. Copy `.env.example` to `.env` and fill in Resend and Google OAuth parameters.
 
 ### 2. Frontend Setup
 1. Navigate to the frontend folder:
@@ -75,6 +75,16 @@ zoominfo-lead-cleaner/
    npm install
    ```
 3. Configure frontend environment variables in `.env` (like `VITE_API_URL` and `VITE_GOOGLE_REDIRECT_URI`).
+
+### 3. Database Migration (Optional - Supabase / PostgreSQL)
+By default, LeadSanity uses a local SQLite database file. To run with a persistent cloud database (e.g. Render backend with Supabase PostgreSQL storage):
+1. Create a free project on [Supabase](https://supabase.com/).
+2. Retrieve your PostgreSQL connection string from the database settings page.
+3. Update the `DATABASE_URL` parameter in your `backend/.env` file:
+   ```env
+   DATABASE_URL=postgresql://postgres.[project-id]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?sslmode=require
+   ```
+4. The database schemas will initialize automatically on application startup.
 
 ---
 
@@ -93,7 +103,7 @@ npm run dev
 ---
 
 ## 🔒 Security & Sandbox Configurations
-During development, if SMTP configurations or OAuth keys are omitted from your `.env`, LeadSanity runs in **Sandbox Fallback Mode**:
+During development, if Resend API configurations or OAuth keys are omitted from your `.env`, LeadSanity runs in **Sandbox Fallback Mode**:
 *   The generated 6-digit OTP codes are logged directly to the backend terminal window.
 *   Google Login will use a simulated modal selector allowing custom name/email input for offline testing of sign-in and sign-up state flows.
 

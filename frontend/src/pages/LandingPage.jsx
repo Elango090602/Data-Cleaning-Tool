@@ -9,6 +9,7 @@ import {
   resendOtpSecure, 
   googleLoginSimulated 
 } from "../services/api";
+import { supabase } from "../services/supabaseClient";
 import UserProfileModal from "../components/UserProfileModal";
 
 /* ─── Animated counter hook ─── */
@@ -118,6 +119,44 @@ export default function LandingPage({ onEnterApp }) {
   // Interactive Segmented Tabs State (Canva Style)
   const [activeTab, setActiveTab] = useState("email");
 
+  // Helper to detect if Supabase credentials are configured
+  const isSupabaseConfigured = () => {
+    const url = import.meta.env.VITE_SUPABASE_URL;
+    const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    return url && url !== "YOUR_SUPABASE_URL" && key && key !== "YOUR_SUPABASE_ANON_KEY";
+  };
+
+  // Listen to Supabase Session & auth state changes
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+
+    // Check active session immediately
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        localStorage.setItem("lead_cleaner_token", session.access_token);
+        localStorage.setItem("lead_cleaner_email", session.user.email);
+        localStorage.setItem("lead_cleaner_name", session.user.user_metadata?.name || session.user.user_metadata?.full_name || session.user.email.split("@")[0].toUpperCase());
+        setCurrentUser(session.user.email);
+        onEnterApp();
+      }
+    };
+    checkSession();
+
+    // Subscribe to auth state events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session && (event === "SIGNED_IN" || event === "USER_UPDATED")) {
+        localStorage.setItem("lead_cleaner_token", session.access_token);
+        localStorage.setItem("lead_cleaner_email", session.user.email);
+        localStorage.setItem("lead_cleaner_name", session.user.user_metadata?.name || session.user.user_metadata?.full_name || session.user.email.split("@")[0].toUpperCase());
+        setCurrentUser(session.user.email);
+        onEnterApp();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   // Countdown timer for resending OTP
   useEffect(() => {
     let timer;
@@ -131,6 +170,7 @@ export default function LandingPage({ onEnterApp }) {
 
   // Catch Google OAuth Callback Authorization Code
   useEffect(() => {
+    if (isSupabaseConfigured()) return;
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get("code");
     if (code) {
@@ -212,14 +252,33 @@ export default function LandingPage({ onEnterApp }) {
       setIsGoogleLoggingIn(false);
       setGoogleLoadingStep("");
     }
-  };
-
   const handleGoogleSignInTrigger = async () => {
     setOtpError("");
     setGoogleError("");
     setSuccessMessage("");
     setGoogleWarningType(null);
     
+    if (isSupabaseConfigured()) {
+      setIsGoogleLoggingIn(true);
+      setGoogleLoadingStep("verifying");
+      try {
+        const redirectUri = window.location.origin;
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: redirectUri,
+          }
+        });
+        if (error) throw error;
+      } catch (err) {
+        setGoogleError(err.message || "Failed to initiate Google sign-in via Supabase.");
+      } finally {
+        setIsGoogleLoggingIn(false);
+        setGoogleLoadingStep("");
+      }
+      return;
+    }
+
     localStorage.setItem("google_auth_flow", authMode);
     
     setIsGoogleLoggingIn(true);
@@ -304,12 +363,23 @@ export default function LandingPage({ onEnterApp }) {
     setOtpError("");
     setSuccessMessage("");
     try {
-      const response = await resendOtpSecure(loginEmail);
-      if (response.success) {
+      if (isSupabaseConfigured()) {
+        const { error } = await supabase.auth.signInWithOtp({
+          email: loginEmail,
+        });
+        if (error) throw error;
         setOtpSent(true);
         setCountdown(60);
-        setSandboxNotice(response.sandbox);
-        setSuccessMessage("A fresh verification code has been sent.");
+        setSandboxNotice(false);
+        setSuccessMessage("A fresh verification code has been sent via Supabase.");
+      } else {
+        const response = await resendOtpSecure(loginEmail);
+        if (response.success) {
+          setOtpSent(true);
+          setCountdown(60);
+          setSandboxNotice(response.sandbox);
+          setSuccessMessage("A fresh verification code has been sent.");
+        }
       }
     } catch (err) {
       setOtpError(err.message || "Failed to dispatch verification code.");
@@ -329,21 +399,47 @@ export default function LandingPage({ onEnterApp }) {
     setOtpError("");
     setSuccessMessage("");
     try {
-      const response = await verifyOtpSecure(loginEmail, otpCode);
-      if (response.success || response.status === "OTP_VERIFIED") {
-        setIsVerifiedSuccess(true);
-        setSuccessMessage("Verification successful!");
-        localStorage.setItem("lead_cleaner_token", response.token);
-        localStorage.setItem("lead_cleaner_email", response.user.email);
-        localStorage.setItem("lead_cleaner_name", response.user.name);
-        setCurrentUser(response.user.email);
-        
-        setTimeout(() => {
-          setIsVerifiedSuccess(false);
-          setSuccessMessage("");
-          setShowLoginModal(false);
-          onEnterApp();
-        }, 1200);
+      if (isSupabaseConfigured()) {
+        const { data, error } = await supabase.auth.verifyOtp({
+          email: loginEmail,
+          token: otpCode,
+          type: "email"
+        });
+        if (error) throw error;
+        if (data.session) {
+          setIsVerifiedSuccess(true);
+          setSuccessMessage("Verification successful!");
+          localStorage.setItem("lead_cleaner_token", data.session.access_token);
+          localStorage.setItem("lead_cleaner_email", data.session.user.email);
+          localStorage.setItem("lead_cleaner_name", data.session.user.user_metadata?.name || data.session.user.user_metadata?.full_name || data.session.user.email.split("@")[0].toUpperCase());
+          setCurrentUser(data.session.user.email);
+          
+          setTimeout(() => {
+            setIsVerifiedSuccess(false);
+            setSuccessMessage("");
+            setShowLoginModal(false);
+            onEnterApp();
+          }, 1200);
+        } else {
+          throw new Error("No session returned from Supabase. Try again.");
+        }
+      } else {
+        const response = await verifyOtpSecure(loginEmail, otpCode);
+        if (response.success || response.status === "OTP_VERIFIED") {
+          setIsVerifiedSuccess(true);
+          setSuccessMessage("Verification successful!");
+          localStorage.setItem("lead_cleaner_token", response.token);
+          localStorage.setItem("lead_cleaner_email", response.user.email);
+          localStorage.setItem("lead_cleaner_name", response.user.name);
+          setCurrentUser(response.user.email);
+          
+          setTimeout(() => {
+            setIsVerifiedSuccess(false);
+            setSuccessMessage("");
+            setShowLoginModal(false);
+            onEnterApp();
+          }, 1200);
+        }
       }
     } catch (err) {
       if (err.status === "INVALID_OTP") {
@@ -1196,8 +1292,11 @@ export default function LandingPage({ onEnterApp }) {
                         <span className="material-symbols-outlined text-[18px] text-amber-500 shrink-0">info</span>
                         <div>
                           <strong className="block text-amber-900 mb-0.5">⚠️ Development Sandbox Mode</strong>
-                          SMTP email configurations aren't set in your .env yet. We printed the 6-digit OTP code to the **backend terminal window**! Go there to copy and verify it.
-                        </div>
+                          {loginEmail && (loginEmail.endsWith("@company.com") || loginEmail.endsWith("@test.com") || loginEmail.endsWith("@example.com")) ? (
+                            <span>This is a simulated test domain. You can verify access using the mock bypass code: <strong className="text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded font-mono font-bold text-[13px] border border-indigo-200">123456</strong></span>
+                          ) : (
+                            <span>Resend email configurations aren't set in your .env yet. We printed the 6-digit OTP code to the **backend terminal window**! Go there to copy and verify it.</span>
+                          )}
                       </div>
                     )}
 
