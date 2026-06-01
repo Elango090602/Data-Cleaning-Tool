@@ -595,7 +595,10 @@ def verify_otp_secure(payload: VerifyOtpSecureRequest):
     else:
         expires_dt = expires_at
         
-    if datetime.now() > expires_dt:
+    if expires_dt.tzinfo is not None:
+        expires_dt = expires_dt.replace(tzinfo=None)
+        
+    if datetime.utcnow() > expires_dt:
         conn.close()
         return JSONResponse(status_code=400, content={
             "status": "EXPIRED_OTP",
@@ -672,7 +675,10 @@ def resend_otp_secure(payload: ResendOtpSecureRequest, background_tasks: Backgro
         else:
             created_dt = created_at
             
-        delta = (datetime.now() - created_dt).total_seconds()
+        if created_dt.tzinfo is not None:
+            created_dt = created_dt.replace(tzinfo=None)
+            
+        delta = (datetime.utcnow() - created_dt).total_seconds()
         if delta < 60:
             conn.close()
             raise HTTPException(
