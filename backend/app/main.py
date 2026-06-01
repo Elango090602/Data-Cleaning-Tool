@@ -1,10 +1,14 @@
 import os
-from fastapi import FastAPI
+import sys
+from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
+# Add backend directory to path so that 'app' module imports work properly when run from root
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.routes import upload, clean, download, auth
 from app.utils.db import init_db
@@ -32,14 +36,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include Routers
-app.include_router(auth.router, prefix="", tags=["Authentication"])
-app.include_router(upload.router, prefix="/upload", tags=["Upload"])
-app.include_router(clean.router, prefix="/clean", tags=["Clean"])
-# Mounted at root so paths are /download/{file_id} and /cleanup/{session_id}
-app.include_router(download.router, tags=["Download & Cleanup"])
+# Include Routers under /api prefix
+api_router = APIRouter(prefix="/api")
+api_router.include_router(auth.router, prefix="", tags=["Authentication"])
+api_router.include_router(upload.router, prefix="/upload", tags=["Upload"])
+api_router.include_router(clean.router, prefix="/clean", tags=["Clean"])
+api_router.include_router(download.router, prefix="", tags=["Download & Cleanup"])
+
+app.include_router(api_router)
 
 @app.get("/")
+@app.get("/api")
 async def health_check():
     """
     Service health check endpoint.
@@ -48,3 +55,4 @@ async def health_check():
         "status": "ok",
         "service": "ZoomInfo Lead Data Cleaner"
     }
+
