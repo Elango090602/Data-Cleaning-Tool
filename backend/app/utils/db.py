@@ -2,7 +2,10 @@ import os
 import sqlite3
 from datetime import datetime
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./tmp/database.db")
+# Writable path for SQLite in serverless vs local dev
+default_db_path = "/tmp/database.db" if os.name != "nt" else "./tmp/database.db"
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{default_db_path}")
+
 
 def get_connection():
     if DATABASE_URL.startswith("postgresql://") or DATABASE_URL.startswith("postgres://"):

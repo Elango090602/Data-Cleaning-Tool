@@ -25,8 +25,17 @@ app = FastAPI(
 # Configure CORS
 allowed_origins_raw = os.getenv("ALLOWED_ORIGINS")
 if not allowed_origins_raw:
-    raise RuntimeError("ALLOWED_ORIGINS environment variable is not configured in the environment / .env file.")
-allowed_origins = allowed_origins_raw.split(",")
+    allowed_origins = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+        "https://leadsanity.vercel.app",
+        "https://data-cleaning-tool.vercel.app"
+    ]
+else:
+    allowed_origins = allowed_origins_raw.split(",")
+
 
 app.add_middleware(
     CORSMiddleware,
