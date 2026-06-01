@@ -476,7 +476,7 @@ export default function LandingPage({ onEnterApp }) {
       });
     }, observerOptions);
 
-    const targets = document.querySelectorAll(".reveal-section");
+    const targets = document.querySelectorAll(".reveal-section, .pop-reveal, .fade-in-slide");
     targets.forEach((target) => observer.observe(target));
 
     return () => {
@@ -490,7 +490,7 @@ export default function LandingPage({ onEnterApp }) {
 
       {/* ── Navigation Bar (Canva Style) ── */}
       <nav className={`fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-b border-slate-100 transition-all duration-700 ${isVisible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"}`}>
-        <div className="max-w-7xl mx-auto px-6 h-16 sm:h-20 flex items-center justify-between">
+        <div className="antigravity-container h-16 sm:h-20 flex items-center justify-between">
           
           {/* Logo brand */}
           <div 
@@ -571,10 +571,10 @@ export default function LandingPage({ onEnterApp }) {
       <section className="relative pt-24 sm:pt-28 pb-20 bg-gradient-to-br from-[#732eff] via-[#5c00e6] to-[#00b0ff] overflow-hidden rounded-b-[2rem] sm:rounded-b-[3.5rem] shadow-xl">
         <ParticleField />
 
-        <div className={`relative z-10 w-full max-w-7xl mx-auto px-6 sm:px-12 md:px-16 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center text-left transition-all duration-1000 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+        <div className={`relative z-10 w-full antigravity-container grid grid-cols-1 lg:grid-cols-12 gap-12 items-center text-left transition-all duration-[1.2s] ease-[var(--ease-out-expo)] ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
           
           {/* Hero Left Column (Info) */}
-          <div className="lg:col-span-7 flex flex-col items-start">
+          <div className="lg:col-span-7 flex flex-col items-start fade-in-slide reveal-active">
             
             {/* Animated Pill Badge */}
             <div className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-3.5 py-1.5 mb-6 select-none">
@@ -583,7 +583,7 @@ export default function LandingPage({ onEnterApp }) {
             </div>
 
             {/* Huge Contrast Header */}
-            <h1 className="text-4xl sm:text-5xl md:text-[54px] font-extrabold text-white leading-[1.1] tracking-tight mb-6 max-w-3xl">
+            <h1 className="text-4xl sm:text-5xl md:text-[64px] font-extrabold text-white leading-[1.05] tracking-[-2.14px] mb-6 max-w-3xl font-sans" style={{ fontVariationSettings: '"wdth" 100, "opsz" 124' }}>
               Pristine B2B lead lists.
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-emerald-200">
@@ -618,7 +618,7 @@ export default function LandingPage({ onEnterApp }) {
           </div>
 
           {/* Hero Right Column (Interactive Live Demonstration) */}
-          <div className="lg:col-span-5 w-full flex justify-center">
+          <div className="lg:col-span-5 w-full flex justify-center pop-reveal reveal-active">
             
             {/* macOS Window Demo Block */}
             <div className="relative w-full max-w-md bg-slate-900/80 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl overflow-hidden hover:scale-[1.02] transition-transform duration-500">
@@ -693,7 +693,7 @@ export default function LandingPage({ onEnterApp }) {
 
       {/* ── Features Strip (Canva Style Features list) ── */}
       <section id="features" className="relative py-12 border-b border-slate-100 bg-white">
-        <div className="max-w-7xl mx-auto px-6 w-full">
+        <div className="antigravity-container w-full">
           <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
             <FeaturePill icon="alternate_email" label="Verified Email Formats" />
             <FeaturePill icon="call" label="ITU Country Calling Codes" />
@@ -709,7 +709,7 @@ export default function LandingPage({ onEnterApp }) {
 
       {/* ── Exploration Interactive Tab Section (Canva Segmented Tabs Style) ── */}
       <section id="explore-tools" className="py-20 bg-white reveal-section">
-        <div className="max-w-7xl mx-auto px-6 w-full text-center">
+        <div className="antigravity-container w-full text-center">
           
           <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-4">
             Explore LeadSanity's Tools
@@ -866,7 +866,7 @@ export default function LandingPage({ onEnterApp }) {
 
       {/* ── Business Features Section (Canva Style pastel layout) ── */}
       <section className="py-24 bg-slate-50 border-t border-slate-100 reveal-section">
-        <div className="max-w-7xl mx-auto px-6 w-full">
+        <div className="antigravity-container w-full">
           
           {/* Centered Title with correct space */}
           <div className="text-center max-w-2xl mx-auto mb-16">
@@ -882,7 +882,7 @@ export default function LandingPage({ onEnterApp }) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch justify-center">
             
             {/* Card 1: Soft Pastel Green */}
-            <div className="flex flex-col justify-between bg-[#e8f5e9] border border-[#c8e6c9] rounded-[2rem] p-8 overflow-hidden relative min-h-[440px] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group">
+            <div className="flex flex-col justify-between bg-[#e8f5e9] border border-[#c8e6c9] rounded-[2rem] p-8 overflow-hidden relative min-h-[440px] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group pop-reveal reveal-delay-1">
               <div>
                 <h3 className="text-2xl font-bold text-slate-800 leading-tight mb-4 max-w-[200px]">
                   Set up standard schemas
@@ -912,7 +912,7 @@ export default function LandingPage({ onEnterApp }) {
             </div>
 
             {/* Card 2: Soft Pastel Lavender Blue */}
-            <div className="flex flex-col justify-between bg-[#e8eaf6] border border-[#c5cae9] rounded-[2rem] p-8 overflow-hidden relative min-h-[440px] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group">
+            <div className="flex flex-col justify-between bg-[#e8eaf6] border border-[#c5cae9] rounded-[2rem] p-8 overflow-hidden relative min-h-[440px] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group pop-reveal reveal-delay-2">
               <div>
                 <h3 className="text-2xl font-bold text-slate-800 leading-tight mb-4 max-w-[220px]">
                   Empower teams to filter lists
@@ -940,7 +940,7 @@ export default function LandingPage({ onEnterApp }) {
             </div>
 
             {/* Card 3: Soft Pastel Blush Pink */}
-            <div className="flex flex-col justify-between bg-[#fce4ec] border border-[#f8bbd0] rounded-[2rem] p-8 overflow-hidden relative min-h-[440px] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group">
+            <div className="flex flex-col justify-between bg-[#fce4ec] border border-[#f8bbd0] rounded-[2rem] p-8 overflow-hidden relative min-h-[440px] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group pop-reveal reveal-delay-3">
               <div>
                 <h3 className="text-2xl font-bold text-slate-800 leading-tight mb-4 max-w-[200px]">
                   Segmented import files
@@ -973,16 +973,16 @@ export default function LandingPage({ onEnterApp }) {
 
       {/* ── Integrations Section ── */}
       <section className="py-16 border-t border-slate-100 bg-[#fafafa] reveal-section">
-        <div className="max-w-7xl mx-auto px-6 w-full text-center">
+        <div className="antigravity-container w-full text-center">
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-2.5">Works With Your Existing Operations Stack</h2>
           <p className="text-slate-600 text-[14px] sm:text-[15px] mb-8 leading-relaxed max-w-xl mx-auto">
             Import records seamlessly from any marketing, sales, or lead generation tool.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 max-w-4xl mx-auto">
-            {["ZoomInfo", "Apollo.io", "HubSpot CRM", "Salesforce", "LinkedIn Sales Navigator", "Outreach", "CSV / Excel"].map((name) => (
+            {["ZoomInfo", "Apollo.io", "HubSpot CRM", "Salesforce", "LinkedIn Sales Navigator", "Outreach", "CSV / Excel"].map((name, idx) => (
               <div
                 key={name}
-                className="bg-white border border-slate-200 rounded-2xl px-5 py-3 text-[12px] sm:text-[13px] font-bold text-slate-800 hover:border-indigo-300 hover:shadow transition-all duration-200"
+                className={`bg-white border border-slate-200 rounded-2xl px-5 py-3 text-[12px] sm:text-[13px] font-bold text-slate-800 hover:border-indigo-300 hover:shadow transition-all duration-200 fade-in-slide reveal-delay-${(idx % 5) + 1}`}
               >
                 {name}
               </div>
@@ -992,9 +992,9 @@ export default function LandingPage({ onEnterApp }) {
       </section>
 
       {/* ── Final CTA ── */}
-      <section className="py-20 relative overflow-hidden bg-white border-t border-slate-100">
+      <section className="py-20 relative overflow-hidden bg-white border-t border-slate-100 reveal-section">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-indigo-50/10 to-indigo-50/50 pointer-events-none" />
-        <div className="relative z-10 max-w-7xl mx-auto px-6 w-full text-center">
+        <div className="relative z-10 antigravity-container w-full text-center pop-reveal">
           <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center mb-6 mx-auto text-indigo-600">
             <span className="material-symbols-outlined text-[28px]">auto_awesome</span>
           </div>
@@ -1017,7 +1017,7 @@ export default function LandingPage({ onEnterApp }) {
 
       {/* ── Footer ── */}
       <footer className="border-t border-slate-100 py-8 bg-[#fafafa]">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="antigravity-container flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-md bg-indigo-600 flex items-center justify-center shadow-sm">
               <span className="material-symbols-outlined text-white text-[14px]">dataset</span>

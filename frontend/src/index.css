@@ -1,12 +1,82 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
 
+/* Font Declarations matching antigravity.google */
+@font-face {
+  font-family: 'Google Sans Flex';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/googlesansflex/v21/t5t2IQcYNIWbFgDgAAzZ34auoVyXkJCOvp3SFWJbN5hF8LG572o.woff2) format('woff2');
+}
+
+@font-face {
+  font-family: 'Google Sans Code';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/googlesanscode/v17/pxihyogzv91QhV44Z_GQBHsGf5PuckJMZfIVTPZaiXEp_ht12EVEHsN1sCQNcmTltAki.woff2) format('woff2');
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Fonts */
+  --font-sans: 'Google Sans Flex', 'Google Sans', 'Poppins', sans-serif;
+  --font-code: 'Google Sans Code', 'Courier New', monospace;
+
+  /* Easing curves from antigravity.google */
+  --ease-in-quad: cubic-bezier(.55, .085, .68, .53);
+  --ease-in-cubic: cubic-bezier(.55, .055, .675, .19);
+  --ease-in-quart: cubic-bezier(.895, .03, .685, .22);
+  --ease-in-quint: cubic-bezier(.755, .05, .855, .06);
+  --ease-in-expo: cubic-bezier(.95, .05, .795, .035);
+  --ease-in-circ: cubic-bezier(.6, .04, .98, .335);
+  --ease-out-quad: cubic-bezier(.25, .46, .45, .94);
+  --ease-out-cubic: cubic-bezier(.215, .61, .355, 1);
+  --ease-out-quart: cubic-bezier(.165, .84, .44, 1);
+  --ease-out-quint: cubic-bezier(.23, 1, .32, 1);
+  --ease-out-expo: cubic-bezier(.19, 1, .22, 1);
+  --ease-out-circ: cubic-bezier(.075, .82, .165, 1);
+  --ease-in-out-quad: cubic-bezier(.455, .03, .515, .955);
+  --ease-in-out-cubic: cubic-bezier(.645, .045, .355, 1);
+  --ease-in-out-quart: cubic-bezier(.77, 0, .175, 1);
+  --ease-in-out-quint: cubic-bezier(.86, 0, .07, 1);
+  --ease-in-out-expo: cubic-bezier(1, 0, 0, 1);
+  --ease-in-out-circ: cubic-bezier(.785, .135, .15, .86);
+  --ease-out-back: cubic-bezier(.34, 1.85, .64, 1);
+
+  /* Page Dimensions */
+  --page-max-width: 1728px;
+  --page-margin-desktop: 72px;
+  --page-margin-tablet: 40px;
+  --page-margin-mobile: 16px;
+
+  /* Antigravity Palette Gray Scale colors */
+  --palette-grey-0: #FFFFFF;
+  --palette-grey-10: #F8F9FC;
+  --palette-grey-15: #F0F1F5;
+  --palette-grey-20: #EFF2F7;
+  --palette-grey-50: #E6EAF0;
+  --palette-grey-100: #E1E6EC;
+  --palette-grey-200: #CDD4DC;
+  --palette-grey-300: #B2BBC5;
+  --palette-grey-400: #B7BFD9;
+  --palette-grey-800: #45474D;
+  --palette-grey-900: #2F3034;
+  --palette-grey-1000: #212226;
+  --palette-grey-1100: #18191D;
+  --palette-grey-1200: #121317;
+  --palette-blue-600: #3279F9;
+}
+
 @layer base {
   body {
     @apply bg-background text-on-background font-sans antialiased h-screen;
+    font-family: var(--font-sans);
+    background-color: var(--palette-grey-10);
+    color: var(--palette-grey-1200);
   }
 }
 
@@ -82,12 +152,12 @@ html {
   animation: shake 0.4s ease-in-out;
 }
 
-/* ── Smooth, Soft Scroll-Reveal Animations ── */
+/* ── Google Antigravity Eased Transitions ── */
 .reveal-section {
   opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(40px);
+  transition: opacity 1.2s var(--ease-out-expo),
+              transform 1.2s var(--ease-out-expo);
   will-change: transform, opacity;
 }
 
@@ -96,9 +166,63 @@ html {
   transform: translateY(0);
 }
 
-/* Stagger delay classes for child columns/elements */
+.pop-reveal {
+  opacity: 0;
+  transform: scale(0.9) translateY(20px);
+  transition: opacity 0.8s var(--ease-out-back),
+              transform 0.8s var(--ease-out-back);
+  will-change: transform, opacity;
+}
+
+.pop-reveal.reveal-active {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+.fade-in-slide {
+  opacity: 0;
+  transform: translateX(-30px);
+  transition: opacity 1.0s var(--ease-out-quint),
+              transform 1.0s var(--ease-out-quint);
+  will-change: transform, opacity;
+}
+
+.fade-in-slide.reveal-active {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Stagger delays matching Google animations */
 .reveal-delay-1 { transition-delay: 80ms; }
 .reveal-delay-2 { transition-delay: 160ms; }
 .reveal-delay-3 { transition-delay: 240ms; }
 .reveal-delay-4 { transition-delay: 320ms; }
+.reveal-delay-5 { transition-delay: 400ms; }
 
+/* Custom Antigravity Layout classes */
+.antigravity-container {
+  width: 100%;
+  max-width: var(--page-max-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--page-margin-desktop);
+  padding-right: var(--page-margin-desktop);
+}
+
+@media (max-width: 1024px) {
+  .antigravity-container {
+    padding-left: var(--page-margin-tablet);
+    padding-right: var(--page-margin-tablet);
+  }
+}
+
+@media (max-width: 767px) {
+  .antigravity-container {
+    padding-left: var(--page-margin-mobile);
+    padding-right: var(--page-margin-mobile);
+  }
+}
+
+.code-font {
+  font-family: var(--font-code);
+}
