@@ -252,6 +252,8 @@ export default function LandingPage({ onEnterApp }) {
       setIsGoogleLoggingIn(false);
       setGoogleLoadingStep("");
     }
+  };
+
   const handleGoogleSignInTrigger = async () => {
     setOtpError("");
     setGoogleError("");
@@ -1193,35 +1195,7 @@ export default function LandingPage({ onEnterApp }) {
                       )}
                     </button>
 
-                    <div className="relative flex items-center justify-center my-4 select-none">
-                      <div className="flex-grow border-t border-slate-200"></div>
-                      <span className="flex-shrink mx-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest bg-white px-2">or</span>
-                      <div className="flex-grow border-t border-slate-200"></div>
-                    </div>
 
-                    <button
-                      type="button"
-                      onClick={handleGoogleSignInTrigger}
-                      disabled={isGoogleLoggingIn}
-                      className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-[13px] sm:text-[14px] hover:bg-slate-50 hover:border-slate-400 active:scale-[0.98] disabled:opacity-50 transition-all shadow-sm hover:shadow focus:outline-none"
-                    >
-                      {isGoogleLoggingIn && googleLoadingStep === "verifying" ? (
-                        <>
-                          <span className="w-4 h-4 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin shrink-0 mr-1" />
-                          Verifying Google account...
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
-                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                          </svg>
-                          Continue with Google
-                        </>
-                      )}
-                    </button>
                     
                     <div className="text-center pt-2 text-[12px] font-semibold text-slate-500">
                       {authMode === "signup" ? (
@@ -1297,6 +1271,7 @@ export default function LandingPage({ onEnterApp }) {
                           ) : (
                             <span>Resend email configurations aren't set in your .env yet. We printed the 6-digit OTP code to the **backend terminal window**! Go there to copy and verify it.</span>
                           )}
+                        </div>
                       </div>
                     )}
 
@@ -1362,122 +1337,7 @@ export default function LandingPage({ onEnterApp }) {
         </div>
       )}
 
-      {/* ── Google Accounts Selection Modal ── */}
-      {showGoogleModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-fade-in">
-          <div className="relative w-full max-w-md bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 xs:p-8 animate-scale-up">
-            
-            {/* Close Button */}
-            <button
-              onClick={() => setShowGoogleModal(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-slate-100 text-secondary hover:text-on-surface transition-all duration-200 focus:outline-none"
-            >
-              <span className="material-symbols-outlined text-[20px]">close</span>
-            </button>
 
-            {/* Header / Google Logo */}
-            <div className="text-center mb-6">
-              <svg className="w-10 h-10 mx-auto mb-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-              </svg>
-              <h3 className="text-[20px] font-bold text-slate-800 font-sans tracking-tight">
-                {authMode === "signup" ? "Sign up with Google" : "Sign in with Google"}
-              </h3>
-              <p className="text-slate-500 text-[12px] sm:text-[13px] mt-1 font-medium">
-                {authMode === "signup" ? "Choose or enter your credentials to create an account" : "Choose or enter your account details to continue"}
-              </p>
-            </div>
-
-            {/* Selector Form */}
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              handleGoogleSignIn(googleEmail, googleName);
-            }} className="space-y-4">
-              
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                  Google Account / Email
-                </label>
-                <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
-                    alternate_email
-                  </span>
-                  <input
-                    type="email"
-                    required
-                    placeholder="e.g. yourname@gmail.com"
-                    value={googleEmail}
-                    onChange={(e) => {
-                      setGoogleEmail(e.target.value);
-                      setGoogleError("");
-                      // Dynamically parse name if they change email
-                      setGoogleName(parseNameFromEmail(e.target.value));
-                    }}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-[13px] sm:text-[14px] bg-slate-50 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-semibold text-slate-800"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                  Your Full Name (from Google account)
-                </label>
-                <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
-                    person
-                  </span>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. John Doe"
-                    value={googleName}
-                    onChange={(e) => {
-                      setGoogleName(e.target.value);
-                      setGoogleError("");
-                    }}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-[13px] sm:text-[14px] bg-slate-50 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-semibold text-slate-800"
-                  />
-                </div>
-              </div>
-
-              {googleError && (
-                <div className="flex items-start gap-2 p-3 bg-error-container/20 border border-error/20 text-error rounded-xl text-[11px] sm:text-[12px] font-medium leading-normal animate-shake">
-                  <span className="material-symbols-outlined text-[16px] shrink-0">error</span>
-                  {googleError}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={isGoogleLoggingIn}
-                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-[#1a73e8] hover:bg-[#1557b0] text-white font-bold text-[13px] sm:text-[14px] active:scale-[0.98] disabled:opacity-50 transition-all shadow-md hover:shadow-lg focus:outline-none"
-              >
-                {isGoogleLoggingIn ? (
-                  <>
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
-                    Connecting to Google...
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined text-[18px]">login</span>
-                    Confirm & Continue
-                  </>
-                )}
-              </button>
-
-            </form>
-
-            <div className="flex items-center justify-center gap-1.5 mt-6 text-[10px] text-slate-400 font-semibold select-none">
-              <span className="material-symbols-outlined text-[14px] text-emerald-500">verified</span>
-              Secure dynamic Google authentication
-            </div>
-
-          </div>
-        </div>
-      )}
 
       {/* ── User Profile Settings Panel ── */}
       <UserProfileModal

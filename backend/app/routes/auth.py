@@ -57,9 +57,63 @@ def send_otp_via_resend(email: str, otp: str):
         print("="*60 + "\n")
         return True
 
+    # Priority 1: Brevo HTTP API
+    brevo_api_key = os.getenv("BREVO_API_KEY", "").strip()
+    if brevo_api_key and "YOUR_" not in brevo_api_key:
+        try:
+            brevo_sender = os.getenv("BREVO_SENDER", "").strip()
+            if not brevo_sender:
+                brevo_sender = "LeadSanity <otp@leadsanity.com>"
+
+            url = "https://api.brevo.com/v3/smtp/email"
+            headers = {
+                "api-key": brevo_api_key,
+                "Content-Type": "application/json"
+            }
+
+            # Extract name and email from "Name <email>" formatting if present, fallback to space-splitting
+            sender_name = "LeadSanity"
+            sender_email = brevo_sender
+            if "<" in brevo_sender and ">" in brevo_sender:
+                parts = brevo_sender.split("<")
+                sender_name = parts[0].strip()
+                sender_email = parts[1].replace(">", "").strip()
+            elif " " in brevo_sender:
+                parts = brevo_sender.rsplit(" ", 1)
+                sender_name = parts[0].strip()
+                sender_email = parts[1].strip()
+
+            html_content = f"""
+                <div style="font-family: Inter, sans-serif; max-width: 480px; margin: 20px auto; padding: 32px; border: 1px solid #f1f5f9; border-radius: 20px; background: #ffffff; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);">
+                    <h2 style="color: #4f46e5; font-size: 24px; font-weight: 800; text-align: center; margin-bottom: 24px;">LeadSanity Security</h2>
+                    <p style="color: #475569; font-size: 14px; line-height: 1.6; text-align: center;">Enter the following secure 6-digit OTP code to verify your workspace access:</p>
+                    <div style="text-align: center; margin: 32px 0;">
+                        <span style="font-size: 36px; font-weight: 800; color: #1e1b4b; background: #f0fdf4; padding: 12px 28px; border-radius: 12px; display: inline-block; letter-spacing: 4px; border: 1px solid #dcfce7;">
+                            {otp}
+                        </span>
+                    </div>
+                    <p style="color: #94a3b8; font-size: 11px; text-align: center; line-height: 1.5; margin-top: 32px;">This code will expire in 10 minutes. Secure verification powered by LeadSanity.</p>
+                </div>
+            """
+
+            data = {
+                "sender": {"name": sender_name, "email": sender_email},
+                "to": [{"email": email}],
+                "subject": f"{otp} is your LeadSanity Verification Code",
+                "htmlContent": html_content
+            }
+
+            response = httpx.post(url, json=data, headers=headers, timeout=10.0)
+            if response.status_code in [200, 201, 202]:
+                print(f"[BREVO] Secure email dispatched successfully to {email}")
+                return True
+            else:
+                print(f"[BREVO Error]: Status {response.status_code} - {response.text}")
+        except Exception as e:
+            print(f"[BREVO Exception]: {e}")
+
+    # Priority 2: Resend HTTP API
     resend_api_key = os.getenv("RESEND_API_KEY", "").strip()
-    
-    # Priority 1: Resend HTTP API
     if resend_api_key and "YOUR_" not in resend_api_key:
         try:
             # Resolve the sender address
@@ -102,12 +156,13 @@ def send_otp_via_resend(email: str, otp: str):
         except Exception as e:
             print(f"[RESEND Exception]: {e}")
 
-    # Priority 2: Console fallback (development sandbox)
+    # Priority 3: Console fallback (development sandbox)
     print("\n" + "="*60)
     print(" [SANDBOX] EMAIL DELIVERY FAILED — CONSOLE FALLBACK")
     print(f" OTP CODE FOR [ {email} ]:  {otp}")
     print("="*60 + "\n")
     return False
+
 
 # ─── Legacy OTP Endpoints ───
 @router.post("/send-otp")

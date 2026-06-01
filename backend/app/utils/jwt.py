@@ -39,19 +39,33 @@ def decode_jwt(token: str) -> dict:
         header_b64, payload_b64, signature_b64 = parts
         signing_input = f"{header_b64}.{payload_b64}".encode('utf-8')
         
-        # Verify signature
+        # 1. Try with raw secret string (UTF-8 encoded)
         expected_sig = hmac.new(JWT_SECRET.encode('utf-8'), signing_input, hashlib.sha256).digest()
         expected_sig_b64 = base64url_encode(expected_sig)
         
-        if not hmac.compare_digest(signature_b64, expected_sig_b64):
-            return None
+        if hmac.compare_digest(signature_b64, expected_sig_b64):
+            payload = json.loads(base64url_decode(payload_b64).decode('utf-8'))
+            if "exp" in payload and payload["exp"] < int(time.time()):
+                return None
+            return payload
             
-        payload = json.loads(base64url_decode(payload_b64).decode('utf-8'))
-        
-        # Check expiration
-        if "exp" in payload and payload["exp"] < int(time.time()):
-            return None
+        # 2. Try with base64-decoded secret bytes (common for Supabase JWT verification)
+        try:
+            padded_secret = JWT_SECRET
+            if len(padded_secret) % 4 != 0:
+                padded_secret += '=' * (4 - len(padded_secret) % 4)
+            decoded_secret = base64.b64decode(padded_secret)
+            expected_sig_decoded = hmac.new(decoded_secret, signing_input, hashlib.sha256).digest()
+            expected_sig_decoded_b64 = base64url_encode(expected_sig_decoded)
+            if hmac.compare_digest(signature_b64, expected_sig_decoded_b64):
+                payload = json.loads(base64url_decode(payload_b64).decode('utf-8'))
+                if "exp" in payload and payload["exp"] < int(time.time()):
+                    return None
+                return payload
+        except Exception:
+            pass
             
-        return payload
+        return None
     except Exception:
         return None
+
