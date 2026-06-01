@@ -49,7 +49,7 @@ def is_mock_email(email: str) -> bool:
     return any(email.endswith(dom) for dom in ["@company.com", "@test.com", "@example.com"])
 
 # ─── Resend HTTP API / Sandbox Email Fallback ───
-def send_otp_via_resend(email: str, otp: str):
+def send_otp_via_email(email: str, otp: str):
     if is_mock_email(email):
         print("\n" + "="*60)
         print(" [SANDBOX] MOCK DOMAIN — EMAIL DISPATCH SKIPPED")
@@ -173,9 +173,9 @@ def send_otp(payload: SendOTPRequest, background_tasks: BackgroundTasks):
         "otp": otp,
         "expires_at": time.time() + 300.0
     }
-    background_tasks.add_task(send_otp_via_resend, email, otp)
-    resend_api_key = os.getenv("RESEND_API_KEY", "")
-    is_sandbox = is_mock_email(email) or not resend_api_key or "YOUR_" in resend_api_key or not resend_api_key.strip()
+    background_tasks.add_task(send_otp_via_email, email, otp)
+    brevo_api_key = os.getenv("BREVO_API_KEY", "")
+    is_sandbox = is_mock_email(email) or not brevo_api_key or "YOUR_" in brevo_api_key or not brevo_api_key.strip()
     return {
         "success": True,
         "message": "Verification code dispatched.",
@@ -322,10 +322,10 @@ async def google_callback(payload: GoogleCallbackRequest, background_tasks: Back
                 conn.commit()
                 conn.close()
                 
-                background_tasks.add_task(send_otp_via_resend, email, otp)
+                background_tasks.add_task(send_otp_via_email, email, otp)
                 
-                resend_api_key = os.getenv("RESEND_API_KEY", "")
-                is_sandbox = not resend_api_key or "YOUR_" in resend_api_key or not resend_api_key.strip()
+                brevo_api_key = os.getenv("BREVO_API_KEY", "")
+                is_sandbox = not brevo_api_key or "YOUR_" in brevo_api_key or not brevo_api_key.strip()
                 
                 return {
                     "status": "UNVERIFIED_USER_OTP_SENT",
@@ -350,10 +350,10 @@ async def google_callback(payload: GoogleCallbackRequest, background_tasks: Back
             conn.commit()
             conn.close()
             
-            background_tasks.add_task(send_otp_via_resend, email, otp)
+            background_tasks.add_task(send_otp_via_email, email, otp)
             
-            resend_api_key = os.getenv("RESEND_API_KEY", "")
-            is_sandbox = not resend_api_key or "YOUR_" in resend_api_key or not resend_api_key.strip()
+            brevo_api_key = os.getenv("BREVO_API_KEY", "")
+            is_sandbox = not brevo_api_key or "YOUR_" in brevo_api_key or not brevo_api_key.strip()
             
             return {
                 "status": "NEW_USER_OTP_SENT",
@@ -406,10 +406,10 @@ async def google_callback(payload: GoogleCallbackRequest, background_tasks: Back
                 conn.commit()
                 conn.close()
                 
-                background_tasks.add_task(send_otp_via_resend, email, otp)
+                background_tasks.add_task(send_otp_via_email, email, otp)
                 
-                resend_api_key = os.getenv("RESEND_API_KEY", "")
-                is_sandbox = not resend_api_key or "YOUR_" in resend_api_key or not resend_api_key.strip()
+                brevo_api_key = os.getenv("BREVO_API_KEY", "")
+                is_sandbox = not brevo_api_key or "YOUR_" in brevo_api_key or not brevo_api_key.strip()
                 
                 return {
                     "status": "UNVERIFIED_USER_OTP_SENT",
@@ -431,7 +431,7 @@ def google_login_simulated(payload: GoogleLoginRequest, background_tasks: Backgr
     profile_picture = f"https://api.dicebear.com/7.x/initials/svg?seed={name}"
     google_id = f"sim-{secrets.token_hex(8)}"
     
-    is_sandbox = is_mock_email(email) or not os.getenv("RESEND_API_KEY", "").strip() or "YOUR_" in os.getenv("RESEND_API_KEY", "")
+    is_sandbox = is_mock_email(email) or not os.getenv("BREVO_API_KEY", "").strip() or "YOUR_" in os.getenv("BREVO_API_KEY", "")
     
     conn = get_connection()
     cursor = conn.cursor()
@@ -467,7 +467,7 @@ def google_login_simulated(payload: GoogleLoginRequest, background_tasks: Backgr
                 conn.commit()
                 conn.close()
                 
-                background_tasks.add_task(send_otp_via_resend, email, otp)
+                background_tasks.add_task(send_otp_via_email, email, otp)
                 
                 return {
                     "status": "UNVERIFIED_USER_OTP_SENT",
@@ -492,7 +492,7 @@ def google_login_simulated(payload: GoogleLoginRequest, background_tasks: Backgr
             conn.commit()
             conn.close()
             
-            background_tasks.add_task(send_otp_via_resend, email, otp)
+            background_tasks.add_task(send_otp_via_email, email, otp)
             
             return {
                 "status": "NEW_USER_OTP_SENT",
@@ -545,7 +545,7 @@ def google_login_simulated(payload: GoogleLoginRequest, background_tasks: Backgr
                 conn.commit()
                 conn.close()
                 
-                background_tasks.add_task(send_otp_via_resend, email, otp)
+                background_tasks.add_task(send_otp_via_email, email, otp)
                 
                 return {
                     "status": "UNVERIFIED_USER_OTP_SENT",
@@ -690,10 +690,10 @@ def resend_otp_secure(payload: ResendOtpSecureRequest, background_tasks: Backgro
     conn.commit()
     conn.close()
     
-    background_tasks.add_task(send_otp_via_resend, email, otp)
+    background_tasks.add_task(send_otp_via_email, email, otp)
     
-    resend_api_key = os.getenv("RESEND_API_KEY", "")
-    is_sandbox = is_mock_email(email) or not resend_api_key or "YOUR_" in resend_api_key or not resend_api_key.strip()
+    brevo_api_key = os.getenv("BREVO_API_KEY", "")
+    is_sandbox = is_mock_email(email) or not brevo_api_key or "YOUR_" in brevo_api_key or not brevo_api_key.strip()
     
     return {
         "success": True,
