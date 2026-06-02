@@ -1,4 +1,7 @@
 import time
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 import secrets
 import re
 import os
@@ -48,8 +51,22 @@ class VerifyOTPRequest(BaseModel):
 def is_mock_email(email: str) -> bool:
     return any(email.endswith(dom) for dom in ["@company.com", "@test.com", "@example.com"])
 
-# ─── Resend HTTP API / Sandbox Email Fallback ───
-def send_otp_via_email(email: str, otp: str):
+def is_sandbox_mode(email: str) -> bool:
+    if is_mock_email(email):
+        return True
+    smtp_user = os.getenv("SMTP_USER", "").strip()
+    smtp_password = os.getenv("SMTP_PASSWORD", "").strip()
+    brevo_api_key = os.getenv("BREVO_API_KEY", "").strip()
+    resend_api_key = os.getenv("RESEND_API_KEY", "").strip()
+    
+    has_smtp = smtp_user and smtp_password and "your_gmail" not in smtp_user
+    has_brevo = brevo_api_key and "YOUR_" not in brevo_api_key
+    has_resend = resend_api_key and "YOUR_" not in resend_api_key
+    
+    return not (has_smtp or has_brevo or has_resend)
+
+# ─── Verification Dispatcher (SMTP -> Brevo API -> Resend API -> Sandbox) ───
+def send_otp_via_email(email: str, otp: str) -> bool:
     if is_mock_email(email):
         print("\n" + "="*60)
         print(" [SANDBOX] MOCK DOMAIN — EMAIL DISPATCH SKIPPED")
@@ -57,7 +74,45 @@ def send_otp_via_email(email: str, otp: str):
         print("="*60 + "\n")
         return True
 
-    # Priority 1: Brevo HTTP API
+    # Priority 1: SMTP Mailer
+    smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user = os.getenv("SMTP_USER", "").strip()
+    smtp_password = os.getenv("SMTP_PASSWORD", "").replace(" ", "")
+    smtp_from_name = os.getenv("SMTP_FROM_NAME", "Lead Sanitizer App")
+    
+    if smtp_user and smtp_password and "your_gmail" not in smtp_user:
+        try:
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = f"{otp} is your Lead Sanitizer Verification Code"
+            msg["From"] = f"{smtp_from_name} <{smtp_user}>"
+            msg["To"] = email
+            
+            html_content = f"""
+                <div style="font-family: Inter, sans-serif; max-width: 480px; margin: 20px auto; padding: 32px; border: 1px solid #f1f5f9; border-radius: 20px; background: #ffffff; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);">
+                    <h2 style="color: #4f46e5; font-size: 24px; font-weight: 800; text-align: center; margin-bottom: 24px;">LeadSanity Security</h2>
+                    <p style="color: #475569; font-size: 14px; line-height: 1.6; text-align: center;">Enter the following secure 6-digit OTP code to verify your workspace access:</p>
+                    <div style="text-align: center; margin: 32px 0;">
+                        <span style="font-size: 36px; font-weight: 800; color: #1e1b4b; background: #f0fdf4; padding: 12px 28px; border-radius: 12px; display: inline-block; letter-spacing: 4px; border: 1px solid #dcfce7;">
+                            {otp}
+                        </span>
+                    </div>
+                    <p style="color: #94a3b8; font-size: 11px; text-align: center; line-height: 1.5; margin-top: 32px;">This code will expire in 10 minutes. Secure verification powered by LeadSanity.</p>
+                </div>
+            """
+            msg.attach(MIMEText(html_content, "html"))
+            
+            server = smtplib.SMTP(smtp_host, smtp_port, timeout=5)
+            server.starttls()
+            server.login(smtp_user, smtp_password)
+            server.sendmail(smtp_user, email, msg.as_string())
+            server.quit()
+            print(f"[SMTP] Verification email successfully sent to {email}")
+            return True
+        except Exception as e:
+            print(f"[SMTP] Failed to send SMTP email: {e}. Falling back...")
+
+    # Priority 2: Brevo HTTP API
     brevo_api_key = os.getenv("BREVO_API_KEY", "").strip()
     if brevo_api_key and "YOUR_" not in brevo_api_key:
         try:
@@ -112,7 +167,7 @@ def send_otp_via_email(email: str, otp: str):
         except Exception as e:
             print(f"[BREVO Exception]: {e}")
 
-    # Priority 2: Resend HTTP API
+    # Priority 3: Resend HTTP API
     resend_api_key = os.getenv("RESEND_API_KEY", "").strip()
     if resend_api_key and "YOUR_" not in resend_api_key:
         try:
@@ -156,7 +211,7 @@ def send_otp_via_email(email: str, otp: str):
         except Exception as e:
             print(f"[RESEND Exception]: {e}")
 
-    # Priority 3: Console fallback (development sandbox)
+    # Priority 4: Console fallback (development sandbox)
     print("\n" + "="*60)
     print(" [SANDBOX] EMAIL DELIVERY FAILED — CONSOLE FALLBACK")
     print(f" OTP CODE FOR [ {email} ]:  {otp}")
@@ -174,8 +229,7 @@ def send_otp(payload: SendOTPRequest, background_tasks: BackgroundTasks):
         "expires_at": time.time() + 300.0
     }
     background_tasks.add_task(send_otp_via_email, email, otp)
-    brevo_api_key = os.getenv("BREVO_API_KEY", "")
-    is_sandbox = is_mock_email(email) or not brevo_api_key or "YOUR_" in brevo_api_key or not brevo_api_key.strip()
+    is_sandbox = is_sandbox_mode(email)
     return {
         "success": True,
         "message": "Verification code dispatched.",
@@ -324,8 +378,7 @@ async def google_callback(payload: GoogleCallbackRequest, background_tasks: Back
                 
                 background_tasks.add_task(send_otp_via_email, email, otp)
                 
-                brevo_api_key = os.getenv("BREVO_API_KEY", "")
-                is_sandbox = not brevo_api_key or "YOUR_" in brevo_api_key or not brevo_api_key.strip()
+                is_sandbox = is_sandbox_mode(email)
                 
                 return {
                     "status": "UNVERIFIED_USER_OTP_SENT",
@@ -352,8 +405,7 @@ async def google_callback(payload: GoogleCallbackRequest, background_tasks: Back
             
             background_tasks.add_task(send_otp_via_email, email, otp)
             
-            brevo_api_key = os.getenv("BREVO_API_KEY", "")
-            is_sandbox = not brevo_api_key or "YOUR_" in brevo_api_key or not brevo_api_key.strip()
+            is_sandbox = is_sandbox_mode(email)
             
             return {
                 "status": "NEW_USER_OTP_SENT",
@@ -408,8 +460,7 @@ async def google_callback(payload: GoogleCallbackRequest, background_tasks: Back
                 
                 background_tasks.add_task(send_otp_via_email, email, otp)
                 
-                brevo_api_key = os.getenv("BREVO_API_KEY", "")
-                is_sandbox = not brevo_api_key or "YOUR_" in brevo_api_key or not brevo_api_key.strip()
+                is_sandbox = is_sandbox_mode(email)
                 
                 return {
                     "status": "UNVERIFIED_USER_OTP_SENT",
@@ -431,7 +482,7 @@ def google_login_simulated(payload: GoogleLoginRequest, background_tasks: Backgr
     profile_picture = f"https://api.dicebear.com/7.x/initials/svg?seed={name}"
     google_id = f"sim-{secrets.token_hex(8)}"
     
-    is_sandbox = is_mock_email(email) or not os.getenv("BREVO_API_KEY", "").strip() or "YOUR_" in os.getenv("BREVO_API_KEY", "")
+    is_sandbox = is_sandbox_mode(email)
     
     conn = get_connection()
     cursor = conn.cursor()
@@ -698,8 +749,7 @@ def resend_otp_secure(payload: ResendOtpSecureRequest, background_tasks: Backgro
     
     background_tasks.add_task(send_otp_via_email, email, otp)
     
-    brevo_api_key = os.getenv("BREVO_API_KEY", "")
-    is_sandbox = is_mock_email(email) or not brevo_api_key or "YOUR_" in brevo_api_key or not brevo_api_key.strip()
+    is_sandbox = is_sandbox_mode(email)
     
     return {
         "success": True,
