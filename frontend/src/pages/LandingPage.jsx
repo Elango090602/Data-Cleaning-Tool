@@ -752,13 +752,24 @@ export default function LandingPage({ onEnterApp }) {
                 >
                   Go to Dashboard
                 </button>
-                <button
+                <div
                   onClick={() => setIsProfileModalOpen(true)}
-                  className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#3b82f6] to-[#1d4ed8] text-white font-extrabold text-[16px] flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md border-2 border-white/20 focus:outline-none shrink-0"
+                  className="flex items-center gap-2 px-2.5 py-1 border border-slate-200 bg-slate-50/50 hover:bg-slate-100 active:scale-[0.98] transition-all rounded-full cursor-pointer select-none shrink-0"
                   title="View Profile Settings"
                 >
-                  {(localStorage.getItem("lead_cleaner_name") || currentUser.split("@")[0]).charAt(0).toUpperCase()}
-                </button>
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#3b82f6] to-[#1d4ed8] text-white font-extrabold text-[12px] flex items-center justify-center shadow-sm shrink-0">
+                    {(localStorage.getItem("lead_cleaner_name") || currentUser.split("@")[0]).charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-[13px] font-bold text-slate-700 truncate max-w-[100px]">
+                    {(() => {
+                      const name = localStorage.getItem("lead_cleaner_name") || currentUser.split("@")[0];
+                      return name ? name.charAt(0).toUpperCase() + name.slice(1) : "";
+                    })()}
+                  </span>
+                  <span className="material-symbols-outlined text-[18px] text-slate-400 font-bold shrink-0">
+                    expand_more
+                  </span>
+                </div>
               </>
             ) : (
               <>

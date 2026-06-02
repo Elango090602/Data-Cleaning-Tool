@@ -46,6 +46,7 @@ export default function App({ onBackToLanding, onLogout }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [userEmail, setUserEmail] = useState(() => localStorage.getItem("lead_cleaner_email") || "");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [userRole, setUserRole] = useState(() => localStorage.getItem("lead_cleaner_role") || "Superadmin");
 
   // Hydrate user profile defaults on app boot
   React.useEffect(() => {
@@ -61,6 +62,10 @@ export default function App({ onBackToLanding, onLogout }) {
         .then((profile) => {
           if (profile.cleaning_preferences) {
             setCleaningOptions(profile.cleaning_preferences);
+          }
+          if (profile.job_role) {
+            setUserRole(profile.job_role);
+            localStorage.setItem("lead_cleaner_role", profile.job_role);
           }
         })
         .catch((err) => {
@@ -382,6 +387,9 @@ export default function App({ onBackToLanding, onLogout }) {
     { id: 5, label: "Export Assets", icon: "download" }
   ];
 
+  const displayName = localStorage.getItem("lead_cleaner_name") || (userEmail ? userEmail.split("@")[0] : "");
+  const initialLetter = displayName ? displayName.charAt(0).toUpperCase() : "";
+
   return (
     <div className="h-screen w-screen flex bg-background overflow-hidden relative">
       
@@ -442,21 +450,42 @@ export default function App({ onBackToLanding, onLogout }) {
         </ul>
 
         {/* Sidebar Bottom: Profile */}
-        <div className="mt-auto pt-md border-t border-outline-variant flex flex-col items-center justify-center gap-1.5 py-sm shrink-0">
+        <div className="mt-auto pt-md border-t border-outline-variant flex flex-col items-center justify-center py-sm shrink-0">
           
-          {/* User Profile Button + Name */}
+          {/* User Profile Card */}
           {userEmail && (
-            <div className="flex flex-col items-center gap-1.5 w-full">
-              <button
+            <div className="w-full border border-outline-variant bg-white/40 hover:bg-white/70 transition-all duration-200 rounded-2xl p-2.5 flex items-center justify-between gap-3 shadow-sm select-none">
+              {/* Left/Middle: Clicking badge & text opens profile settings */}
+              <div 
                 onClick={() => setIsProfileOpen(true)}
-                className="w-11 h-11 rounded-full bg-gradient-to-tr from-[#3b82f6] to-[#1d4ed8] text-white font-extrabold text-[18px] flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md border-2 border-white/20 focus:outline-none shrink-0"
+                className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer group"
                 title="View Profile Settings"
               >
-                {(localStorage.getItem("lead_cleaner_name") || userEmail.split("@")[0]).charAt(0).toUpperCase()}
+                {/* Square/Rounded Badge */}
+                <div className="w-11 h-11 rounded-[14px] bg-gradient-to-tr from-[#3b82f6] to-[#1d4ed8] text-white font-extrabold text-[16px] flex items-center justify-center shadow-md shadow-blue-500/10 transition-transform group-hover:scale-[1.03] active:scale-[0.97] shrink-0">
+                  {initialLetter}
+                </div>
+                
+                {/* Vertical text stack */}
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[13px] font-extrabold text-[#191c1e] group-hover:text-primary transition-colors leading-tight truncate">
+                    {displayName ? displayName.charAt(0).toUpperCase() + displayName.slice(1) : ""}
+                  </span>
+                  <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase leading-none mt-1.5">
+                    {(userRole || "Superadmin").toUpperCase()}
+                  </span>
+                </div>
+              </div>
+              
+              {/* Right: Door Logout Button */}
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(true)}
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-error-container/20 hover:text-error transition-all focus:outline-none shrink-0"
+                title="Log Out"
+              >
+                <span className="material-symbols-outlined text-[18px]">logout</span>
               </button>
-              <span className="text-[11px] font-bold text-slate-500 tracking-wide truncate max-w-[120px] select-none text-center">
-                {localStorage.getItem("lead_cleaner_name") || (userEmail.split("@")[0].charAt(0).toUpperCase() + userEmail.split("@")[0].slice(1))}
-              </span>
             </div>
           )}
         </div>
@@ -734,6 +763,9 @@ export default function App({ onBackToLanding, onLogout }) {
           setUserEmail(localStorage.getItem("lead_cleaner_email") || "");
           if (profile.cleaning_preferences) {
             setCleaningOptions(profile.cleaning_preferences);
+          }
+          if (profile.job_role) {
+            setUserRole(profile.job_role);
           }
         }}
       />
