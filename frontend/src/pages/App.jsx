@@ -10,7 +10,7 @@ import QuarantineInspector from "../components/QuarantineInspector";
 import UserProfileModal from "../components/UserProfileModal";
 import { cleanData, cleanupSession, promoteLead } from "../services/api";
 
-export default function App({ onBackToLanding }) {
+export default function App({ onBackToLanding, onLogout }) {
   const [step, setStep] = useState(1);
   const [sessionId, setSessionId] = useState(null);
   const [uploadedFile, setUploadedFile] = useState(null);
@@ -45,12 +45,14 @@ export default function App({ onBackToLanding }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [userEmail, setUserEmail] = useState(() => localStorage.getItem("lead_cleaner_email") || "");
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Hydrate user profile defaults on app boot
   React.useEffect(() => {
     const token = localStorage.getItem("lead_cleaner_token");
     if (!token) {
-      onBackToLanding();
+      if (onLogout) onLogout();
+      else onBackToLanding();
       return;
     }
     
@@ -63,10 +65,24 @@ export default function App({ onBackToLanding }) {
         })
         .catch((err) => {
           console.error("Dashboard session validation failed, redirecting to login:", err);
-          onBackToLanding();
+          if (onLogout) onLogout();
+          else onBackToLanding();
         });
     });
   }, []);
+
+  // Prevent background page scrolling when popups/modals are active
+  React.useEffect(() => {
+    const isModalOpen = isProfileOpen || showLogoutConfirm;
+    if (isModalOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isProfileOpen, showLogoutConfirm]);
 
   // Step 1 Callback: File uploaded successfully
   const handleUploadSuccess = (data, file) => {
@@ -374,9 +390,18 @@ export default function App({ onBackToLanding }) {
         isSidebarOpen ? "translate-x-0" : "-translate-x-full md:flex"
       }`}>
         <div className="mb-xl px-sm flex justify-between items-center">
-          <div>
-            <h1 className="font-headline-md text-[26px] text-primary font-bold tracking-tight mb-xs">LeadSanity</h1>
-            <p className="font-body-sm text-body-sm text-secondary font-semibold">Enterprise SaaS Suite</p>
+          <div 
+            onClick={() => window.location.href = '/'}
+            className="flex items-center gap-2 cursor-pointer hover:opacity-85 transition-opacity select-none shrink-0"
+            title="LeadSanity Home"
+          >
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-md shrink-0">
+              <span className="material-symbols-outlined text-on-primary text-[18px]">dataset</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="font-extrabold text-primary text-[20px] tracking-tight leading-none">LeadSanity</span>
+              <span className="text-[10px] text-secondary font-semibold mt-1">Enterprise SaaS Suite</span>
+            </div>
           </div>
           <button 
             onClick={() => setIsSidebarOpen(false)}
@@ -416,81 +441,45 @@ export default function App({ onBackToLanding }) {
           })}
         </ul>
 
-        {/* Back to Landing */}
-        {onBackToLanding && (
-          <div className="mt-auto pt-md border-t border-outline-variant">
+        {/* Sidebar Bottom: Profile + Logout */}
+        <div className="mt-auto pt-md border-t border-outline-variant flex items-center justify-between px-xs py-sm shrink-0">
+          
+          {/* User Profile Button */}
+          {userEmail && (
+            <button
+              onClick={() => setIsProfileOpen(true)}
+              className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#ff6b3d] to-[#ff471a] text-white font-extrabold text-[16px] flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md border-2 border-white/20 focus:outline-none"
+              title="View Profile Settings"
+            >
+              {(localStorage.getItem("lead_cleaner_name") || userEmail.split("@")[0]).charAt(0).toUpperCase()}
+            </button>
+          )}
+
+          {/* Logout Button */}
+          {onLogout && (
             <button
               type="button"
-              onClick={onBackToLanding}
-              className="w-full flex items-center gap-md px-md py-sm rounded-xl font-label-caps text-label-caps text-primary/75 hover:bg-surface-container-high hover:text-primary cursor-pointer transition-all text-left focus:outline-none"
+              onClick={() => setShowLogoutConfirm(true)}
+              className="w-10 h-10 rounded-full bg-error-container/20 hover:bg-error-container/40 text-error flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 border border-error/10 focus:outline-none"
+              title="Log Out"
             >
-              <span className="material-symbols-outlined">home</span>
-              <span>Back to Home</span>
+              <span className="material-symbols-outlined text-[20px]">logout</span>
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </nav>
+
+      {/* Mobile Hamburger FAB (visible only on small screens when sidebar is hidden) */}
+      <button 
+        onClick={() => setIsSidebarOpen(true)}
+        className="md:hidden fixed top-4 left-4 z-50 w-10 h-10 rounded-xl bg-primary text-on-primary flex items-center justify-center shadow-lg hover:bg-surface-tint transition-all active:scale-90"
+        style={{ display: isSidebarOpen ? 'none' : undefined }}
+      >
+        <span className="material-symbols-outlined text-[20px]">menu</span>
+      </button>
 
       {/* Main Container */}
       <main className="flex-1 md:ml-64 flex flex-col h-screen overflow-hidden bg-background">
-        
-        {/* Top Header Navigation */}
-        <header className="bg-surface border-b border-outline-variant flex justify-between items-center px-lg w-full h-16 shrink-0 z-30 shadow-sm">
-          <div className="flex items-center gap-md">
-            <button 
-              onClick={() => setIsSidebarOpen(true)}
-              className="md:hidden p-xs text-secondary hover:bg-surface-container rounded transition-colors"
-            >
-              <span className="material-symbols-outlined">menu</span>
-            </button>
-            <div 
-              onClick={() => {
-                localStorage.removeItem("active_step");
-                window.location.href = "/";
-              }}
-              className="flex items-center cursor-pointer hover:opacity-85 transition-opacity select-none shrink-0"
-              title="Go to Home"
-            >
-              <img 
-                src="/logo.svg" 
-                alt="LeadSanity Logo" 
-                className="h-6 sm:h-7.5 w-auto object-contain"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  document.getElementById('app-brand-fallback').style.display = 'flex';
-                }}
-              />
-              <div id="app-brand-fallback" className="hidden font-title-sm text-title-sm font-extrabold text-primary text-[17px]">
-                LeadSanity
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-md">
-            {/* Enterprise Active Badge */}
-            <div className="hidden xs:flex items-center gap-xs text-primary font-body-sm bg-primary/10 px-sm py-[3px] rounded-full border border-primary/20">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <span className="font-bold text-[10px] tracking-wide uppercase">Enterprise Active</span>
-            </div>
-
-            {/* Profile badge sitting at absolute right-most side of header */}
-            {userEmail && (
-              <button
-                onClick={() => setIsProfileOpen(true)}
-                className="flex flex-col items-center justify-center hover:opacity-80 transition-all focus:outline-none cursor-pointer group"
-                title="View Profile Settings"
-              >
-                <div className="w-11 h-11 rounded-full bg-primary/10 border border-primary/25 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-all shadow-sm">
-                  <span className="font-extrabold text-[16px] text-primary tracking-tight">
-                    {(localStorage.getItem("lead_cleaner_name") || userEmail.split("@")[0]).charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <span className="text-[10px] font-bold text-slate-700 mt-1 tracking-tight max-w-[85px] truncate text-center leading-none">
-                  {localStorage.getItem("lead_cleaner_name") || (userEmail.split("@")[0].charAt(0).toUpperCase() + userEmail.split("@")[0].slice(1))}
-                </span>
-              </button>
-            )}
-          </div>
-        </header>
 
         {/* Content Canvas */}
         <div className="flex-1 overflow-auto p-gutter md:p-xl custom-scrollbar flex flex-col min-h-0">
@@ -755,6 +744,38 @@ export default function App({ onBackToLanding }) {
           }
         }}
       />
+
+      {/* Custom Logout Confirmation Popup */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-sm bg-white rounded-3xl border border-outline-variant shadow-2xl p-6 flex flex-col items-center text-center animate-scale-up">
+            <div className="w-12 h-12 rounded-full bg-error-container/30 text-error flex items-center justify-center mb-4">
+              <span className="material-symbols-outlined text-[28px]">logout</span>
+            </div>
+            <h3 className="text-lg font-extrabold text-on-surface mb-2">Confirm Logout</h3>
+            <p className="text-secondary text-xs sm:text-sm mb-6 leading-relaxed">
+              Are you sure you want to terminate your secure LeadSanity session? You will need to verify your email to log back in.
+            </p>
+            <div className="flex items-center gap-3 w-full">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 py-2.5 border border-outline-variant rounded-xl text-[13px] font-bold hover:bg-surface-container-low transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowLogoutConfirm(false);
+                  if (onLogout) onLogout();
+                }}
+                className="flex-1 py-2.5 bg-error text-on-error rounded-xl text-[13px] font-bold hover:bg-error/90 active:scale-[0.98] transition-all shadow-md"
+              >
+                Yes, Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

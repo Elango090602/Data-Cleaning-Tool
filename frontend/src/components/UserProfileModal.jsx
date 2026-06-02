@@ -24,6 +24,7 @@ export default function UserProfileModal({ isOpen, onClose, onSaveSuccess }) {
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const email = localStorage.getItem("lead_cleaner_email") || "";
   
@@ -49,6 +50,18 @@ export default function UserProfileModal({ isOpen, onClose, onSaveSuccess }) {
         });
     }
   }, [isOpen]);
+
+  // Prevent background scrolling when UserProfileModal or Logout confirm popup is open
+  useEffect(() => {
+    if (isOpen || showLogoutConfirm) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen, showLogoutConfirm]);
 
   const handlePreferenceChange = (key) => {
     setProfile(prev => ({
@@ -92,10 +105,7 @@ export default function UserProfileModal({ isOpen, onClose, onSaveSuccess }) {
 
   // Perform full session logout and window reload
   const handleLogoutClick = () => {
-    localStorage.removeItem("lead_cleaner_token");
-    localStorage.removeItem("lead_cleaner_email");
-    localStorage.removeItem("lead_cleaner_name");
-    window.location.reload();
+    setShowLogoutConfirm(true);
   };
 
   if (!isOpen) return null;
@@ -308,6 +318,43 @@ export default function UserProfileModal({ isOpen, onClose, onSaveSuccess }) {
         )}
 
       </div>
+
+      {/* Custom Logout Confirmation Dialog (Z-index 210 to float over the profile modal) */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[210] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-sm bg-white rounded-3xl border border-outline-variant shadow-2xl p-6 flex flex-col items-center text-center animate-scale-up">
+            <div className="w-12 h-12 rounded-full bg-error-container/30 text-error flex items-center justify-center mb-4">
+              <span className="material-symbols-outlined text-[28px]">logout</span>
+            </div>
+            <h3 className="text-lg font-extrabold text-on-surface mb-2">Confirm Logout</h3>
+            <p className="text-secondary text-xs sm:text-sm mb-6 leading-relaxed">
+              Are you sure you want to terminate your secure LeadSanity session? You will need to verify your email to log back in.
+            </p>
+            <div className="flex items-center gap-3 w-full">
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 py-2.5 border border-outline-variant rounded-xl text-[13px] font-bold hover:bg-surface-container-low transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.removeItem("lead_cleaner_token");
+                  localStorage.removeItem("lead_cleaner_email");
+                  localStorage.removeItem("lead_cleaner_name");
+                  localStorage.removeItem("lead_cleaner_login_at");
+                  window.location.reload();
+                }}
+                className="flex-1 py-2.5 bg-error text-on-error rounded-xl text-[13px] font-bold hover:bg-error/90 active:scale-[0.98] transition-all shadow-md"
+              >
+                Yes, Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

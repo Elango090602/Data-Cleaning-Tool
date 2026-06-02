@@ -151,6 +151,7 @@ export default function LandingPage({ onEnterApp }) {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         localStorage.setItem("lead_cleaner_token", session.access_token);
+        localStorage.setItem("lead_cleaner_login_at", Date.now().toString());
         localStorage.setItem("lead_cleaner_email", session.user.email);
         localStorage.setItem("lead_cleaner_name", session.user.user_metadata?.name || session.user.user_metadata?.full_name || session.user.email.split("@")[0].toUpperCase());
         setCurrentUser(session.user.email);
@@ -163,6 +164,7 @@ export default function LandingPage({ onEnterApp }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session && (event === "SIGNED_IN" || event === "USER_UPDATED")) {
         localStorage.setItem("lead_cleaner_token", session.access_token);
+        localStorage.setItem("lead_cleaner_login_at", Date.now().toString());
         localStorage.setItem("lead_cleaner_email", session.user.email);
         localStorage.setItem("lead_cleaner_name", session.user.user_metadata?.name || session.user.user_metadata?.full_name || session.user.email.split("@")[0].toUpperCase());
         setCurrentUser(session.user.email);
@@ -197,11 +199,25 @@ export default function LandingPage({ onEnterApp }) {
     }
   }, []);
 
+  // Prevent background scrolling when signup/signin, Google OAuth, or user profile modals are open
+  useEffect(() => {
+    const isModalOpen = showLoginModal || showGoogleModal || isProfileModalOpen;
+    if (isModalOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [showLoginModal, showGoogleModal, isProfileModalOpen]);
+
   const handleAuthResponse = (response, flow) => {
     const status = response.status;
     
     if (status === "EXISTING_USER_LOGIN") {
       localStorage.setItem("lead_cleaner_token", response.token);
+      localStorage.setItem("lead_cleaner_login_at", Date.now().toString());
       localStorage.setItem("lead_cleaner_email", response.user.email);
       localStorage.setItem("lead_cleaner_name", response.user.name);
       setCurrentUser(response.user.email);
@@ -434,6 +450,7 @@ export default function LandingPage({ onEnterApp }) {
           setIsVerifiedSuccess(true);
           setSuccessMessage("Verification successful!");
           localStorage.setItem("lead_cleaner_token", data.session.access_token);
+          localStorage.setItem("lead_cleaner_login_at", Date.now().toString());
           localStorage.setItem("lead_cleaner_email", data.session.user.email);
           localStorage.setItem("lead_cleaner_name", data.session.user.user_metadata?.name || data.session.user.user_metadata?.full_name || data.session.user.email.split("@")[0].toUpperCase());
           setCurrentUser(data.session.user.email);
@@ -453,6 +470,7 @@ export default function LandingPage({ onEnterApp }) {
           setIsVerifiedSuccess(true);
           setSuccessMessage("Verification successful!");
           localStorage.setItem("lead_cleaner_token", response.token);
+          localStorage.setItem("lead_cleaner_login_at", Date.now().toString());
           localStorage.setItem("lead_cleaner_email", response.user.email);
           localStorage.setItem("lead_cleaner_name", response.user.name);
           setCurrentUser(response.user.email);
@@ -536,6 +554,7 @@ export default function LandingPage({ onEnterApp }) {
         setIsVerifiedSuccess(true);
         setSuccessMessage("Account verified and activated!");
         localStorage.setItem("lead_cleaner_token", response.token);
+        localStorage.setItem("lead_cleaner_login_at", Date.now().toString());
         localStorage.setItem("lead_cleaner_email", response.user.email);
         localStorage.setItem("lead_cleaner_name", response.user.name);
         setCurrentUser(response.user.email);
@@ -574,6 +593,7 @@ export default function LandingPage({ onEnterApp }) {
         setIsVerifiedSuccess(true);
         setSuccessMessage("Login successful!");
         localStorage.setItem("lead_cleaner_token", response.token);
+        localStorage.setItem("lead_cleaner_login_at", Date.now().toString());
         localStorage.setItem("lead_cleaner_email", response.user.email);
         localStorage.setItem("lead_cleaner_name", response.user.name);
         setCurrentUser(response.user.email);
@@ -725,21 +745,21 @@ export default function LandingPage({ onEnterApp }) {
           {/* Authentication & User Panel */}
           <div className="flex items-center gap-3">
             {currentUser ? (
-              <button
-                onClick={() => setIsProfileModalOpen(true)}
-                className="flex items-center gap-2.5 hover:opacity-90 transition-all focus:outline-none cursor-pointer"
-                title="View Profile Settings"
-              >
-                <div className="w-10 h-10 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-700 shadow-sm font-bold">
+              <>
+                <button
+                  onClick={onEnterApp}
+                  className="px-4 py-2 text-[13px] font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-full shadow-sm hover:shadow transition-all cursor-pointer focus:outline-none"
+                >
+                  Go to Dashboard
+                </button>
+                <button
+                  onClick={() => setIsProfileModalOpen(true)}
+                  className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#ff6b3d] to-[#ff471a] text-white font-extrabold text-[16px] flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md border-2 border-white/20 focus:outline-none shrink-0"
+                  title="View Profile Settings"
+                >
                   {(localStorage.getItem("lead_cleaner_name") || currentUser.split("@")[0]).charAt(0).toUpperCase()}
-                </div>
-                <div className="hidden sm:flex flex-col text-left">
-                  <span className="text-xs font-bold text-slate-800 leading-none">
-                    {localStorage.getItem("lead_cleaner_name") || (currentUser.split("@")[0].charAt(0).toUpperCase() + currentUser.split("@")[0].slice(1))}
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-medium mt-0.5 truncate max-w-[100px]">{currentUser}</span>
-                </div>
-              </button>
+                </button>
+              </>
             ) : (
               <>
                 <button

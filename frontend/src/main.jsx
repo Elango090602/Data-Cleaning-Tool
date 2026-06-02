@@ -6,10 +6,44 @@ import Lenis from 'lenis'
 import 'lenis/dist/lenis.css'
 import './index.css'
 
+const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
+
+function isSessionValid() {
+  const token = localStorage.getItem("lead_cleaner_token");
+  if (!token) return false;
+  const loginTimestamp = localStorage.getItem("lead_cleaner_login_at");
+  if (!loginTimestamp) return true; // Legacy sessions without timestamp are treated as valid
+  const elapsed = Date.now() - parseInt(loginTimestamp, 10);
+  return elapsed < SESSION_TTL_MS;
+}
+
+function clearSession() {
+  localStorage.removeItem("lead_cleaner_token");
+  localStorage.removeItem("lead_cleaner_email");
+  localStorage.removeItem("lead_cleaner_name");
+  localStorage.removeItem("lead_cleaner_login_at");
+}
+
 function Root() {
   const [page, setPage] = useState(() => {
-    return localStorage.getItem("lead_cleaner_token") ? "app" : "landing";
+    if (window.location.hash === "#app" && isSessionValid()) return "app";
+    // If token exists but expired, clear it
+    if (localStorage.getItem("lead_cleaner_token") && !isSessionValid()) clearSession();
+    return "landing";
   });
+
+  // Periodically check session validity while on app page
+  useEffect(() => {
+    if (page !== "app") return;
+    const interval = setInterval(() => {
+      if (!isSessionValid()) {
+        clearSession();
+        window.location.hash = "";
+        setPage("landing");
+      }
+    }, 60 * 1000); // Check every minute
+    return () => clearInterval(interval);
+  }, [page]);
 
   useEffect(() => {
     if (page !== "landing") return;
@@ -59,16 +93,27 @@ function Root() {
     return (
       <App 
         onBackToLanding={() => {
-          localStorage.removeItem("lead_cleaner_token");
-          localStorage.removeItem("lead_cleaner_email");
-          localStorage.removeItem("lead_cleaner_name");
+          // Navigate to landing WITHOUT clearing session
+          window.location.hash = "";
           setPage("landing");
-        }} 
+        }}
+        onLogout={() => {
+          clearSession();
+          window.location.hash = "";
+          setPage("landing");
+        }}
       />
     );
   }
 
-  return <LandingPage onEnterApp={() => setPage("app")} />;
+  return (
+    <LandingPage 
+      onEnterApp={() => {
+        window.location.hash = "#app";
+        setPage("app");
+      }} 
+    />
+  );
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
