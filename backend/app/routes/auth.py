@@ -67,6 +67,88 @@ def is_sandbox_mode(email: str) -> bool:
     return not (has_smtp or has_brevo or has_resend)
 
 # ─── Verification Dispatcher (SMTP -> Brevo API -> Resend API -> Sandbox) ───
+
+def generate_otp_email_html(email: str, otp: str) -> str:
+    return f"""
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f6f9fc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; padding: 40px 10px;">
+  <tr>
+    <td align="center">
+      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 500px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); overflow: hidden; border: 1px solid #eef2f6;">
+        <tr>
+          <td style="background-color: #3b82f6; height: 6px;"></td>
+        </tr>
+        <tr>
+          <td align="center" style="padding: 32px 32px 10px 32px;">
+            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+              <tr>
+                <td align="center" style="padding-bottom: 24px;">
+                  <span style="font-size: 24px; font-weight: 800; color: #1e3a8a; letter-spacing: -0.5px;">LeadSanity</span>
+                </td>
+              </tr>
+              <tr>
+                <td align="center" style="padding-bottom: 16px;">
+                  <h1 style="margin: 0; font-size: 20px; font-weight: 700; color: #0f172a; line-height: 28px;">Verify Your Identity</h1>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 0 32px 24px 32px; font-size: 14px; line-height: 22px; color: #475569; text-align: left;">
+            <p style="margin: 0 0 16px 0;">Hello,</p>
+            <p style="margin: 0 0 16px 0;">We received a request to verify your email address for <strong>{email}</strong>. Use the secure verification code below to complete your sign-in or registration:</p>
+            
+            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 24px 0 24px 0;">
+              <tr>
+                <td align="center">
+                  <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px 24px; display: inline-block; letter-spacing: 6px;">
+                    <span style="font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-size: 32px; font-weight: 800; color: #1e3a8a; padding-left: 6px;">{otp}</span>
+                  </div>
+                </td>
+              </tr>
+            </table>
+
+            <p style="margin: 0 0 16px 0; font-size: 13px; line-height: 20px; color: #64748b;">
+              This secure one-time password is valid for <strong>10 minutes</strong>. For your account security, please do not share this code with anyone.
+            </p>
+            <p style="margin: 0; font-size: 13px; line-height: 20px; color: #64748b;">
+              If you did not request this verification, you can safely disregard this message. No changes have been made to your account.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="background-color: #fafbfc; border-top: 1px solid #f1f5f9; padding: 24px 32px 32px 32px; text-align: center;">
+            <p style="margin: 0 0 8px 0; font-size: 11px; color: #94a3b8; line-height: 16px;">
+              This is a secure transactional message sent by LeadSanity to authenticate your workspace access.
+            </p>
+            <p style="margin: 0; font-size: 11px; color: #94a3b8; line-height: 16px;">
+              &copy; 2026 LeadSanity Enterprise Suite. All rights reserved.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+"""
+
+def generate_otp_email_text(email: str, otp: str) -> str:
+    return f"""Hello,
+
+We received a request to verify your email address for {email} on LeadSanity.
+
+Please use the secure verification code below to complete your sign-in or registration:
+
+{otp}
+
+This secure code is valid for 10 minutes. For your security, do not share this code with anyone.
+
+If you did not request this verification, you can safely disregard this email.
+
+Best regards,
+LeadSanity Security Team
+"""
+
 def send_otp_via_email(email: str, otp: str) -> bool:
     if is_mock_email(email):
         print("\n" + "="*60)
@@ -74,6 +156,10 @@ def send_otp_via_email(email: str, otp: str) -> bool:
         print(f" OTP CODE FOR [ {email} ]:  {otp}")
         print("="*60 + "\n")
         return True
+
+    # Generate templates
+    html_content = generate_otp_email_html(email, otp)
+    plain_text = generate_otp_email_text(email, otp)
 
     # Priority 1: SMTP Mailer
     smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
@@ -89,34 +175,6 @@ def send_otp_via_email(email: str, otp: str) -> bool:
             msg["From"] = f"{smtp_from_name} <{smtp_user}>"
             msg["To"] = email
             
-            html_content = f"""
-            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; padding: 40px 16px; margin: 0;">
-                <div style="max-width: 500px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);">
-                    <div style="margin-bottom: 24px; text-align: center;">
-                        <span style="font-size: 20px; font-weight: 800; color: #004ac6; letter-spacing: -0.5px;">LeadSanity</span>
-                    </div>
-                    <div style="height: 1px; background-color: #f1f5f9; margin-bottom: 24px;"></div>
-                    <h2 style="color: #0f172a; font-size: 20px; font-weight: 700; text-align: center; margin: 0 0 12px 0;">Verify Your Workspace Access</h2>
-                    <p style="color: #475569; font-size: 14px; line-height: 24px; text-align: center; margin: 0 0 28px 0;">
-                        Please use the secure one-time password (OTP) below to authenticate and enter your LeadSanity workspace. This code is valid for 10 minutes.
-                    </p>
-                    <div style="text-align: center; margin-bottom: 28px;">
-                        <div style="background-color: #f1f5f9; border-radius: 12px; padding: 16px 24px; display: inline-block; border: 1px solid #e2e8f0;">
-                            <span style="font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 32px; font-weight: 800; color: #0f172a; letter-spacing: 6px; padding-left: 6px; display: block;">{otp}</span>
-                        </div>
-                    </div>
-                    <p style="color: #64748b; font-size: 12px; line-height: 20px; text-align: center; margin: 0 0 24px 0;">
-                        If you did not request this code, you can safely ignore this email. Another user may have typed your address by mistake.
-                    </p>
-                    <div style="height: 1px; background-color: #f1f5f9; margin-bottom: 20px;"></div>
-                    <p style="color: #94a3b8; font-size: 11px; text-align: center; margin: 0; line-height: 18px;">
-                        This is a secure, automated transactional email.<br/>
-                        © 2026 LeadSanity Enterprise Suite. All rights reserved.
-                    </p>
-                </div>
-            </div>
-            """
-            plain_text = f"LeadSanity Security: Your secure 6-digit OTP code to verify workspace access is: {otp}. This code will expire in 10 minutes."
             msg.attach(MIMEText(plain_text, "plain"))
             msg.attach(MIMEText(html_content, "html"))
             
@@ -159,34 +217,6 @@ def send_otp_via_email(email: str, otp: str) -> bool:
                 sender_name = parts[0].strip()
                 sender_email = parts[1].strip()
 
-            html_content = f"""
-            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; padding: 40px 16px; margin: 0;">
-                <div style="max-width: 500px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);">
-                    <div style="margin-bottom: 24px; text-align: center;">
-                        <span style="font-size: 20px; font-weight: 800; color: #004ac6; letter-spacing: -0.5px;">LeadSanity</span>
-                    </div>
-                    <div style="height: 1px; background-color: #f1f5f9; margin-bottom: 24px;"></div>
-                    <h2 style="color: #0f172a; font-size: 20px; font-weight: 700; text-align: center; margin: 0 0 12px 0;">Verify Your Workspace Access</h2>
-                    <p style="color: #475569; font-size: 14px; line-height: 24px; text-align: center; margin: 0 0 28px 0;">
-                        Please use the secure one-time password (OTP) below to authenticate and enter your LeadSanity workspace. This code is valid for 10 minutes.
-                    </p>
-                    <div style="text-align: center; margin-bottom: 28px;">
-                        <div style="background-color: #f1f5f9; border-radius: 12px; padding: 16px 24px; display: inline-block; border: 1px solid #e2e8f0;">
-                            <span style="font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 32px; font-weight: 800; color: #0f172a; letter-spacing: 6px; padding-left: 6px; display: block;">{otp}</span>
-                        </div>
-                    </div>
-                    <p style="color: #64748b; font-size: 12px; line-height: 20px; text-align: center; margin: 0 0 24px 0;">
-                        If you did not request this code, you can safely ignore this email. Another user may have typed your address by mistake.
-                    </p>
-                    <div style="height: 1px; background-color: #f1f5f9; margin-bottom: 20px;"></div>
-                    <p style="color: #94a3b8; font-size: 11px; text-align: center; margin: 0; line-height: 18px;">
-                        This is a secure, automated transactional email.<br/>
-                        © 2026 LeadSanity Enterprise Suite. All rights reserved.
-                    </p>
-                </div>
-            </div>
-            """
-
             data = {
                 "sender": {"name": sender_name, "email": sender_email},
                 "to": [{"email": email}],
@@ -225,33 +255,7 @@ def send_otp_via_email(email: str, otp: str) -> bool:
                 "from": resend_sender,
                 "to": [email],
                 "subject": f"{otp} is your LeadSanity Verification Code",
-                "html": f"""
-                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; padding: 40px 16px; margin: 0;">
-                    <div style="max-width: 500px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);">
-                        <div style="margin-bottom: 24px; text-align: center;">
-                            <span style="font-size: 20px; font-weight: 800; color: #004ac6; letter-spacing: -0.5px;">LeadSanity</span>
-                        </div>
-                        <div style="height: 1px; background-color: #f1f5f9; margin-bottom: 24px;"></div>
-                        <h2 style="color: #0f172a; font-size: 20px; font-weight: 700; text-align: center; margin: 0 0 12px 0;">Verify Your Workspace Access</h2>
-                        <p style="color: #475569; font-size: 14px; line-height: 24px; text-align: center; margin: 0 0 28px 0;">
-                            Please use the secure one-time password (OTP) below to authenticate and enter your LeadSanity workspace. This code is valid for 10 minutes.
-                        </p>
-                        <div style="text-align: center; margin-bottom: 28px;">
-                            <div style="background-color: #f1f5f9; border-radius: 12px; padding: 16px 24px; display: inline-block; border: 1px solid #e2e8f0;">
-                                <span style="font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 32px; font-weight: 800; color: #0f172a; letter-spacing: 6px; padding-left: 6px; display: block;">{otp}</span>
-                            </div>
-                        </div>
-                        <p style="color: #64748b; font-size: 12px; line-height: 20px; text-align: center; margin: 0 0 24px 0;">
-                            If you did not request this code, you can safely ignore this email. Another user may have typed your address by mistake.
-                        </p>
-                        <div style="height: 1px; background-color: #f1f5f9; margin-bottom: 20px;"></div>
-                        <p style="color: #94a3b8; font-size: 11px; text-align: center; margin: 0; line-height: 18px;">
-                            This is a secure, automated transactional email.<br/>
-                            © 2026 LeadSanity Enterprise Suite. All rights reserved.
-                        </p>
-                    </div>
-                </div>
-                """
+                "html": html_content
             }
             response = httpx.post(url, json=data, headers=headers, timeout=10.0)
             if response.status_code in [200, 201]:
