@@ -1,4 +1,14 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const getBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (!envUrl) return '/api';
+  // If the URL is set to backend root without /api prefix, auto-append it for safety
+  if (envUrl.startsWith('http') && !envUrl.endsWith('/api') && !envUrl.endsWith('/api/')) {
+    return `${envUrl.replace(/\/$/, '')}/api`;
+  }
+  return envUrl;
+};
+const BASE_URL = getBaseUrl();
+
 
 /**
  * Uploads a raw lead CSV or Excel file.
