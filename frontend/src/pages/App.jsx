@@ -441,30 +441,23 @@ export default function App({ onBackToLanding, onLogout }) {
           })}
         </ul>
 
-        {/* Sidebar Bottom: Profile + Logout */}
-        <div className="mt-auto pt-md border-t border-outline-variant flex items-center justify-between px-xs py-sm shrink-0">
+        {/* Sidebar Bottom: Profile */}
+        <div className="mt-auto pt-md border-t border-outline-variant flex flex-col items-center justify-center gap-1.5 py-sm shrink-0">
           
-          {/* User Profile Button */}
+          {/* User Profile Button + Name */}
           {userEmail && (
-            <button
-              onClick={() => setIsProfileOpen(true)}
-              className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#ff6b3d] to-[#ff471a] text-white font-extrabold text-[16px] flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md border-2 border-white/20 focus:outline-none"
-              title="View Profile Settings"
-            >
-              {(localStorage.getItem("lead_cleaner_name") || userEmail.split("@")[0]).charAt(0).toUpperCase()}
-            </button>
-          )}
-
-          {/* Logout Button */}
-          {onLogout && (
-            <button
-              type="button"
-              onClick={() => setShowLogoutConfirm(true)}
-              className="w-10 h-10 rounded-full bg-error-container/20 hover:bg-error-container/40 text-error flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 border border-error/10 focus:outline-none"
-              title="Log Out"
-            >
-              <span className="material-symbols-outlined text-[20px]">logout</span>
-            </button>
+            <div className="flex flex-col items-center gap-1.5 w-full">
+              <button
+                onClick={() => setIsProfileOpen(true)}
+                className="w-11 h-11 rounded-full bg-gradient-to-tr from-[#3b82f6] to-[#1d4ed8] text-white font-extrabold text-[18px] flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md border-2 border-white/20 focus:outline-none shrink-0"
+                title="View Profile Settings"
+              >
+                {(localStorage.getItem("lead_cleaner_name") || userEmail.split("@")[0]).charAt(0).toUpperCase()}
+              </button>
+              <span className="text-[11px] font-bold text-slate-500 tracking-wide truncate max-w-[120px] select-none text-center">
+                {localStorage.getItem("lead_cleaner_name") || (userEmail.split("@")[0].charAt(0).toUpperCase() + userEmail.split("@")[0].slice(1))}
+              </span>
+            </div>
           )}
         </div>
       </nav>

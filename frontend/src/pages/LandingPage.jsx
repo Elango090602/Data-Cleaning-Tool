@@ -754,7 +754,7 @@ export default function LandingPage({ onEnterApp }) {
                 </button>
                 <button
                   onClick={() => setIsProfileModalOpen(true)}
-                  className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#ff6b3d] to-[#ff471a] text-white font-extrabold text-[16px] flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md border-2 border-white/20 focus:outline-none shrink-0"
+                  className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#3b82f6] to-[#1d4ed8] text-white font-extrabold text-[16px] flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md border-2 border-white/20 focus:outline-none shrink-0"
                   title="View Profile Settings"
                 >
                   {(localStorage.getItem("lead_cleaner_name") || currentUser.split("@")[0]).charAt(0).toUpperCase()}
