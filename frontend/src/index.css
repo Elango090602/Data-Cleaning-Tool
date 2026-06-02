@@ -127,9 +127,9 @@
   animation: fade-slide-up 0.4s ease-out both;
 }
 
-/* Smooth scroll for landing page anchor links */
+/* Smooth scroll is managed by Lenis */
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto !important;
 }
 
 /* Modal Scale-up and Input validation shake keyframes */
@@ -155,9 +155,9 @@ html {
 /* ── Google Antigravity Eased Transitions ── */
 .reveal-section {
   opacity: 0;
-  transform: translateY(40px);
-  transition: opacity 1.2s var(--ease-out-expo),
-              transform 1.2s var(--ease-out-expo);
+  transform: translateY(20px);
+  transition: opacity 0.8s var(--ease-out-expo),
+              transform 0.8s var(--ease-out-expo);
   will-change: transform, opacity;
 }
 
@@ -181,9 +181,9 @@ html {
 
 .fade-in-slide {
   opacity: 0;
-  transform: translateX(-30px);
-  transition: opacity 1.0s var(--ease-out-quint),
-              transform 1.0s var(--ease-out-quint);
+  transform: translateX(-15px);
+  transition: opacity 0.75s var(--ease-out-quint),
+              transform 0.75s var(--ease-out-quint);
   will-change: transform, opacity;
 }
 

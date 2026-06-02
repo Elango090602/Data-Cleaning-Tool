@@ -132,6 +132,9 @@ export default function LandingPage({ onEnterApp }) {
   // Interactive Segmented Tabs State (Canva Style)
   const [activeTab, setActiveTab] = useState("email");
 
+  // FAQ Accordion State
+  const [activeFaq, setActiveFaq] = useState(null);
+
   // Helper to detect if Supabase credentials are configured
   const isSupabaseConfigured = () => {
     const url = import.meta.env.VITE_SUPABASE_URL;
@@ -713,9 +716,9 @@ export default function LandingPage({ onEnterApp }) {
           {/* Navigation Links in Center */}
           <div className="hidden md:flex items-center gap-8 text-[14px] font-semibold text-slate-600">
             <a href="#features" className="hover:text-indigo-600 transition-colors">Features</a>
-            <a href="#explore-tools" className="hover:text-indigo-600 transition-colors">Explore Tools</a>
-            <a href="#pricing" className="hover:text-indigo-600 transition-colors">Pricing</a>
-            <a href="#resources" className="hover:text-indigo-600 transition-colors">Resources</a>
+            <a href="#how-it-works" className="hover:text-indigo-600 transition-colors">How It Works</a>
+            <a href="#privacy" className="hover:text-indigo-600 transition-colors">Data Privacy</a>
+            <a href="#faq" className="hover:text-indigo-600 transition-colors">FAQ</a>
             <span className="px-2.5 py-1 bg-indigo-50 text-indigo-600 rounded-md text-[13px] font-bold">Help</span>
           </div>
 
@@ -789,29 +792,43 @@ export default function LandingPage({ onEnterApp }) {
             </div>
 
             {/* Huge Contrast Header */}
-            <h1 className="text-4xl sm:text-5xl md:text-[64px] font-extrabold text-white leading-[1.05] tracking-[-2.14px] mb-6 max-w-3xl font-sans" style={{ fontVariationSettings: '"wdth" 100, "opsz" 124' }}>
-              Pristine B2B lead lists.
-              <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-emerald-200">
-                Zero manual formatting.
-              </span>
+            <h1 className="text-4xl sm:text-5xl md:text-[56px] font-extrabold text-white leading-[1.1] tracking-[-1.8px] mb-6 max-w-3xl font-sans">
+              Clean messy B2B lead lists in minutes.
             </h1>
 
             {/* Contrast Subtitle */}
-            <p className="text-indigo-100 text-sm sm:text-base md:text-[17px] max-w-xl leading-relaxed mb-8">
-              Your GTM pipeline is only as powerful as the data you feed it. Clean, format, and structure messy CSV exports from ZoomInfo, Apollo, and other sources automatically before they ever hit your CRM.
+            <p className="text-indigo-100 text-sm sm:text-base md:text-[16px] max-w-2xl leading-relaxed mb-8">
+              Upload CSV or Excel files from ZoomInfo, Apollo, LinkedIn Sales Navigator, or web scraping sources. LeadSanity removes unwanted fields, fixes formatting issues, validates key data, removes duplicates, and gives you a clean file ready for sales outreach.
             </p>
 
-            {/* Canva Style White Pill CTA Button inside Hero */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-start gap-4 mb-10 w-full sm:w-auto">
+            {/* Canva Style CTA Buttons */}
+            <div className="flex flex-wrap items-center justify-start gap-3 mb-10 w-full">
               <button
                 onClick={handleLaunchClick}
-                className="group flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-white text-[#5c00e6] font-bold text-[14px] sm:text-[15px] hover:bg-[#fafafa] active:scale-[0.98] transition-all duration-200 shadow-md hover:shadow-lg focus:outline-none"
+                className="group flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-white text-[#5c00e6] font-bold text-[14px] hover:bg-[#fafafa] active:scale-[0.98] transition-all duration-200 shadow-md hover:shadow-lg focus:outline-none"
               >
-                <span className="material-symbols-outlined text-[20px]">bolt</span>
-                Sign up and start cleaning
+                <span className="material-symbols-outlined text-[20px]">cloud_upload</span>
+                Upload Lead File
                 <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform duration-200">arrow_forward</span>
               </button>
+              
+              <a
+                href="/messy_zoominfo_sample.csv"
+                download="messy_zoominfo_sample.csv"
+                className="flex items-center justify-center gap-1.5 px-5 py-3.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-[13px] transition-all duration-200 focus:outline-none"
+              >
+                <span className="material-symbols-outlined text-[18px]">download</span>
+                Try Sample File
+              </a>
+
+              <a
+                href="/expected_cleaned_output.csv"
+                download="expected_cleaned_output.csv"
+                className="flex items-center justify-center gap-1.5 px-5 py-3.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-[13px] transition-all duration-200 focus:outline-none"
+              >
+                <span className="material-symbols-outlined text-[18px]">file_download</span>
+                Download Sample Output
+              </a>
             </div>
 
             {/* Hero Trust Indicators */}
@@ -897,18 +914,122 @@ export default function LandingPage({ onEnterApp }) {
         </div>
       </section>
 
-      {/* ── Features Strip (Canva Style Features list) ── */}
-      <section id="features" className="relative py-12 border-b border-slate-100 bg-white">
+      {/* ── Problem & Solution Section ── */}
+      <section id="problem-solution" className="py-20 bg-slate-50 border-b border-slate-100 reveal-section">
         <div className="antigravity-container w-full">
-          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
-            <FeaturePill icon="alternate_email" label="Verified Email Formats" />
-            <FeaturePill icon="call" label="ITU Country Calling Codes" />
-            <FeaturePill icon="language" label="Normalized Domains" />
-            <FeaturePill icon="work" label="Clean LinkedIn Handles" />
-            <FeaturePill icon="content_copy" label="Cross-Record Deduplication" />
-            <FeaturePill icon="delete_sweep" label="Blank Field Purging" />
-            <FeaturePill icon="swap_horiz" label="Pre-Import Mappings" />
-            <FeaturePill icon="download" label="Flexible Export Splits" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+            {/* Problem card */}
+            <div className="bg-white border border-slate-200 rounded-[2rem] p-8 sm:p-10 shadow-sm flex flex-col justify-between pop-reveal reveal-delay-1">
+              <div>
+                <span className="inline-block text-[11px] font-bold tracking-widest text-rose-600 uppercase bg-rose-50 border border-rose-100 px-3 py-1 rounded-full mb-6">
+                  The Problem
+                </span>
+                <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight leading-tight mb-4">
+                  Messy lead data slows down outreach
+                </h2>
+                <p className="text-slate-600 text-sm sm:text-base leading-relaxed mb-4">
+                  Lead lists exported from ZoomInfo, Apollo, Sales Navigator, and scraping tools are rarely ready for outreach. They contain duplicate contacts, inconsistent name casing, sensitive columns, invalid emails, and formatting issues.
+                </p>
+                <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+                  Manually cleaning these files in Excel takes hours, delays campaigns, and increases the risk of spam flags or outreach mistakes.
+                </p>
+              </div>
+            </div>
+
+            {/* Solution card */}
+            <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-[2rem] p-8 sm:p-10 text-white shadow-xl flex flex-col justify-between pop-reveal reveal-delay-2 relative overflow-hidden">
+              <div className="absolute -right-16 -top-16 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+              <div>
+                <span className="inline-block text-[11px] font-bold tracking-widest text-cyan-300 uppercase bg-white/10 border border-white/20 px-3 py-1 rounded-full mb-6">
+                  The Solution
+                </span>
+                <h2 className="text-3xl font-extrabold tracking-tight leading-tight mb-4">
+                  LeadSanity automates data hygiene
+                </h2>
+                <p className="text-indigo-100 text-sm sm:text-base leading-relaxed mb-4">
+                  LeadSanity cleans and standardizes your leads instantly. Upload your raw list, pick the fields you need, and run our cleaning engine to format names, normalize phone numbers, and filter duplicates.
+                </p>
+                <p className="text-indigo-100 text-sm sm:text-base leading-relaxed">
+                  Download a CRM-ready, sanitized spreadsheet in under 60 seconds with 100% data safety.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Who is this for Section ── */}
+      <section id="audience" className="py-20 bg-white border-b border-slate-100 reveal-section">
+        <div className="antigravity-container w-full">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <span className="text-[11px] font-bold tracking-widest text-indigo-600 uppercase bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full">
+              Ideal Fit
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mt-4 mb-4">
+              Built For Outbound Excellence
+            </h2>
+            <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+              Whether you are managing a small email campaign or scaling a global outbound operations pipeline, LeadSanity keeps your database clean.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { icon: "campaign", title: "Marketing Teams", desc: "Format lead list names, titles, and domains automatically for personalized cold email and marketing campaigns." },
+              { icon: "hub", title: "Sales Operations Teams", desc: "Ensure CRM data integrity by standardizing phone numbers, cleaning emails, and removing duplicates before import." },
+              { icon: "group_work", title: "Lead Generation Teams", desc: "Scale outbound lists rapidly and deliver clean, verified leads to your account executives without manual Excel work." },
+              { icon: "storefront", title: "B2B Agencies", desc: "Improve client deliverability and campaign performance by scrubbing lists of generic emails and duplicates." },
+              { icon: "rocket_launch", title: "Outbound Founders", desc: "Save hours of prep work. Clean and format lead lists in minutes to keep your outbound engine moving." },
+              { icon: "table_rows", title: "Apollo & ZoomInfo Exporters", desc: "Instantly clean the 50+ unwanted metadata columns in database exports and keep only the fields you need." }
+            ].map((item, idx) => (
+              <div
+                key={idx}
+                className="p-6 bg-slate-50 border border-slate-200/60 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 pop-reveal"
+                style={{ transitionDelay: `${(idx % 3) * 80}ms` }}
+              >
+                <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 mb-4">
+                  <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                </div>
+                <h3 className="text-lg font-bold text-slate-800 mb-2">{item.title}</h3>
+                <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── How It Works Section ── */}
+      <section id="how-it-works" className="py-20 bg-slate-50 border-b border-slate-100 reveal-section">
+        <div className="antigravity-container w-full">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <span className="text-[11px] font-bold tracking-widest text-indigo-600 uppercase bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full">
+              Process
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mt-4 mb-4">
+              Clean Data In 4 Simple Steps
+            </h2>
+            <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+              No complex formulas or scripts required. Upload your file and let LeadSanity do the heavy lifting.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { step: "01", title: "Upload your file", desc: "Drag and drop any CSV or Excel (.xlsx, .xls) lead file up to 50MB." },
+              { step: "02", title: "Select required fields", desc: "Choose the exact columns you need and map them to clean categories." },
+              { step: "03", title: "Clean & Validate", desc: "LeadSanity formats names, standardizes phones, and runs fuzzy duplicate checks." },
+              { step: "04", title: "Download clean data", desc: "Export your formatted, CRM-ready lead spreadsheet in 1-click." }
+            ].map((item, idx) => (
+              <div
+                key={idx}
+                className="relative p-6 bg-white border border-slate-200/80 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300 pop-reveal"
+                style={{ transitionDelay: `${idx * 80}ms` }}
+              >
+                <div className="text-4xl font-extrabold text-indigo-100 mb-4">{item.step}</div>
+                <h3 className="text-lg font-bold text-slate-800 mb-2">{item.title}</h3>
+                <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -1070,127 +1191,232 @@ export default function LandingPage({ onEnterApp }) {
         </div>
       </section>
 
-      {/* ── Business Features Section (Canva Style pastel layout) ── */}
-      <section className="py-24 bg-slate-50 border-t border-slate-100 reveal-section">
+      {/* ── Features & Capabilities Grid ── */}
+      <section id="features" className="py-24 bg-slate-50 border-t border-slate-100 reveal-section">
         <div className="antigravity-container w-full">
-          
-          {/* Centered Title with correct space */}
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-4">
-              Our Business Features
+            <span className="text-[11px] font-bold tracking-widest text-indigo-600 uppercase bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full">
+              Full Suite
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mt-4 mb-4">
+              Advanced Cleaning Capabilities
             </h2>
             <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-              Enhance the data hygiene capabilities of your team or your entire business with LeadSanity's robust validation schemas. Protect your CRM from day one.
+              Standardize, sanitize, and validate lists with 11 advanced lead-cleaning features designed specifically for modern outbound campaigns.
             </p>
           </div>
 
-          {/* Pastel Rounded Cards aligned beautifully */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch justify-center">
-            
-            {/* Card 1: Soft Pastel Green */}
-            <div className="flex flex-col justify-between bg-[#e8f5e9] border border-[#c8e6c9] rounded-[2rem] p-8 overflow-hidden relative min-h-[440px] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group pop-reveal reveal-delay-1">
-              <div>
-                <h3 className="text-2xl font-bold text-slate-800 leading-tight mb-4 max-w-[200px]">
-                  Set up standard schemas
-                </h3>
-                <button 
-                  onClick={handleLaunchClick}
-                  className="px-4 py-2 bg-white text-slate-800 font-bold text-[12px] rounded-full shadow-sm hover:shadow hover:bg-slate-50 transition-all select-none focus:outline-none"
-                >
-                  Learn more
-                </button>
-              </div>
-              {/* Visual asset cropping out of bottom */}
-              <div className="mt-8 transform translate-y-4 group-hover:translate-y-2 transition-transform duration-500 select-none">
-                <div className="bg-white rounded-2xl p-4 shadow-lg border border-slate-100/50 space-y-2.5 max-w-[280px] mx-auto font-mono text-[10px]">
-                  <div className="flex items-center justify-between p-2 bg-slate-50 rounded border border-slate-100">
-                    <span className="font-semibold text-slate-700">biz_email</span>
-                    <span className="material-symbols-outlined text-slate-400 text-[12px]">arrow_right_alt</span>
-                    <span className="bg-green-50 text-green-700 font-bold px-1.5 py-0.5 rounded text-[8px] uppercase">Email</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2 bg-slate-50 rounded border border-slate-100">
-                    <span className="font-semibold text-slate-700">Cell_Phone</span>
-                    <span className="material-symbols-outlined text-slate-400 text-[12px]">arrow_right_alt</span>
-                    <span className="bg-green-50 text-green-700 font-bold px-1.5 py-0.5 rounded text-[8px] uppercase">Phone</span>
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { icon: "view_column", title: "Remove Unwanted Columns", desc: "Strip out irrelevant metadata columns exported by database providers, saving only what you need." },
+              { icon: "filter_alt", title: "Remove Duplicate Leads", desc: "Filter exact and fuzzy duplicates across emails, domains, and phone numbers to prevent duplicate emails." },
+              { icon: "match_case", title: "Standardize Name Formatting", desc: "Properly capitalize first and last names (e.g. 'JOHN' or 'jane' becomes 'John' or 'Jane') for clean personalization." },
+              { icon: "domain", title: "Clean Company Names", desc: "Automatically remove corporate legal suffixes (e.g. 'Inc.', 'L.L.C.', 'Corp.') to make company names sound natural." },
+              { icon: "alternate_email", title: "Verify Corporate Emails", desc: "Flag personal accounts (Gmail, Outlook) and filter out malformed email syntaxes." },
+              { icon: "call", title: "Normalize Phone Numbers", desc: "Convert local phone formatting into unified E.164 standard strings with correct dial codes." },
+              { icon: "language", title: "Clean LinkedIn Profiles", desc: "Strip parameters and normalize links (e.g. 'linkedin.com/in/john-doe?ref=src' becomes 'linkedin.com/in/john-doe')." },
+              { icon: "web", title: "Extract Apex Domains", desc: "Standardize website links by removing protocols, subdomains, and subfolders (e.g. 'https://uk.google.com/home' -> 'google.com')." },
+              { icon: "delete_sweep", title: "Handle Missing Values", desc: "Identify, flag, or skip empty fields safely without breaking your CSV structure." },
+              { icon: "file_download", title: "Flexible Export Splits", desc: "Split large lead files into smaller batches to comply with daily mailing limits." },
+              { icon: "shield", title: "Zero-Storage Privacy", desc: "Lead files are processed entirely in memory and deleted instantly after download. We never store your leads." }
+            ].map((item, idx) => (
+              <div
+                key={idx}
+                className="p-6 bg-white border border-slate-200/60 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 pop-reveal"
+                style={{ transitionDelay: `${(idx % 3) * 80}ms` }}
+              >
+                <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 mb-4">
+                  <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
                 </div>
+                <h3 className="text-lg font-bold text-slate-800 mb-2">{item.title}</h3>
+                <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">{item.desc}</p>
               </div>
-            </div>
-
-            {/* Card 2: Soft Pastel Lavender Blue */}
-            <div className="flex flex-col justify-between bg-[#e8eaf6] border border-[#c5cae9] rounded-[2rem] p-8 overflow-hidden relative min-h-[440px] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group pop-reveal reveal-delay-2">
-              <div>
-                <h3 className="text-2xl font-bold text-slate-800 leading-tight mb-4 max-w-[220px]">
-                  Empower teams to filter lists
-                </h3>
-                <button 
-                  onClick={handleLaunchClick}
-                  className="px-4 py-2 bg-white text-slate-800 font-bold text-[12px] rounded-full shadow-sm hover:shadow hover:bg-slate-50 transition-all select-none focus:outline-none"
-                >
-                  View options
-                </button>
-              </div>
-              {/* Visual asset cropping out of bottom */}
-              <div className="mt-8 transform translate-y-4 group-hover:translate-y-2 transition-transform duration-500 select-none">
-                <div className="bg-white rounded-2xl p-4 shadow-lg border border-slate-100/50 space-y-2.5 max-w-[280px] mx-auto text-[10px]">
-                  <div className="flex items-center justify-between p-1.5 border-b border-slate-100">
-                    <span className="text-slate-600 font-semibold">Auto-Format Phone Numbers</span>
-                    <span className="w-6 h-3.5 rounded-full bg-indigo-600 relative flex items-center justify-end px-0.5"><span className="w-2 h-2 bg-white rounded-full" /></span>
-                  </div>
-                  <div className="flex items-center justify-between p-1.5 border-b border-slate-100">
-                    <span className="text-slate-600 font-semibold">Verify Corporate Emails</span>
-                    <span className="w-6 h-3.5 rounded-full bg-indigo-600 relative flex items-center justify-end px-0.5"><span className="w-2 h-2 bg-white rounded-full" /></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Card 3: Soft Pastel Blush Pink */}
-            <div className="flex flex-col justify-between bg-[#fce4ec] border border-[#f8bbd0] rounded-[2rem] p-8 overflow-hidden relative min-h-[440px] shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group pop-reveal reveal-delay-3">
-              <div>
-                <h3 className="text-2xl font-bold text-slate-800 leading-tight mb-4 max-w-[200px]">
-                  Segmented import files
-                </h3>
-                <button 
-                  onClick={handleLaunchClick}
-                  className="px-4 py-2 bg-white text-slate-800 font-bold text-[12px] rounded-full shadow-sm hover:shadow hover:bg-slate-50 transition-all select-none focus:outline-none"
-                >
-                  Learn more
-                </button>
-              </div>
-              {/* Visual asset cropping out of bottom */}
-              <div className="mt-8 transform translate-y-4 group-hover:translate-y-2 transition-transform duration-500 select-none">
-                <div className="bg-white rounded-2xl p-4 shadow-lg border border-slate-100/50 space-y-2 max-w-[280px] mx-auto text-[10px] font-mono">
-                  <div className="flex items-center justify-between p-2 bg-emerald-50 text-emerald-700 rounded border border-emerald-100">
-                    <span className="font-bold flex items-center gap-1"><span className="material-symbols-outlined text-[12px] fill">check_circle</span>Sanitized_Leads.csv</span>
-                    <span className="text-[8px] bg-emerald-100 px-1 py-0.5 rounded font-bold uppercase">CLEAN</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2 bg-red-50 text-red-700 rounded border border-red-100">
-                    <span className="font-bold flex items-center gap-1"><span className="material-symbols-outlined text-[12px] fill">error</span>Duplicates_Flagged.csv</span>
-                    <span className="text-[8px] bg-red-100 px-1 py-0.5 rounded font-bold uppercase">FLAGGED</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ── Integrations Section ── */}
-      <section className="py-16 border-t border-slate-100 bg-[#fafafa] reveal-section">
-        <div className="antigravity-container w-full text-center">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-2.5">Works With Your Existing Operations Stack</h2>
-          <p className="text-slate-600 text-[14px] sm:text-[15px] mb-8 leading-relaxed max-w-xl mx-auto">
-            Import records seamlessly from any marketing, sales, or lead generation tool.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 max-w-4xl mx-auto">
-            {["ZoomInfo", "Apollo.io", "HubSpot CRM", "Salesforce", "LinkedIn Sales Navigator", "Outreach", "CSV / Excel"].map((name, idx) => (
+      {/* ── Before vs After Section ── */}
+      <section id="before-after" className="py-20 bg-white border-b border-slate-100 reveal-section">
+        <div className="antigravity-container w-full">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <span className="text-[11px] font-bold tracking-widest text-indigo-600 uppercase bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full">
+              Comparison
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mt-4 mb-4">
+              Pristine CRM Data, Instantly
+            </h2>
+            <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+              See how our engine transforms noisy, raw exports into structured, highly-personalized outreach variables.
+            </p>
+          </div>
+
+          <div className="max-w-4xl mx-auto bg-slate-50 border border-slate-200/80 rounded-3xl shadow-md overflow-hidden pop-reveal">
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="w-full text-left border-collapse text-[13px] sm:text-[14px]">
+                <thead>
+                  <tr className="bg-slate-100 border-b border-slate-200 text-[11px] font-bold uppercase text-slate-500 tracking-wider">
+                    <th className="px-6 py-4">Raw Input (Messy)</th>
+                    <th className="px-6 py-4">Cleaned Output (LeadSanity)</th>
+                    <th className="px-6 py-4">Outbound Benefit</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 font-medium text-slate-700 bg-white">
+                  {[
+                    { raw: "john kumar", clean: "John Kumar", benefit: "Personalized casing prevents bot detection" },
+                    { raw: "HTTPS://LINKEDIN.COM/IN/ABC/?ref=src", clean: "linkedin.com/in/abc", benefit: "Standardized links for sales mapping" },
+                    { raw: "Duplicate email rows", clean: "Single unique record", benefit: "Prevents spamming the same prospect" },
+                    { raw: "50 unwanted metadata columns", clean: "Selected columns only", benefit: "Fast CRM upload with zero column bloat" },
+                    { raw: "+44 020 1234 5678", clean: "+44 20 1234 5678", benefit: "Unified phone standard for power dialers" }
+                  ].map((row, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-4 text-red-500 font-mono text-[12px]">{row.raw}</td>
+                      <td className="px-6 py-4 text-emerald-600 font-mono text-[12px]">{row.clean}</td>
+                      <td className="px-6 py-4 text-slate-600 font-semibold">{row.benefit}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Supported Formats & Limits Section ── */}
+      <section id="limits" className="py-20 bg-slate-50 border-b border-slate-100 reveal-section">
+        <div className="antigravity-container w-full">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <span className="text-[11px] font-bold tracking-widest text-indigo-600 uppercase bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full">
+              Specifications
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mt-4 mb-4">
+              Supported Formats & Limits
+            </h2>
+            <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+              LeadSanity is optimized for high-volume outbound databases, giving you fast responses without resource bottlenecks.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            {[
+              { icon: "description", title: "File Extensions", desc: "Fully supports standard comma-separated values (.csv) and Microsoft Excel (.xlsx, .xls) files." },
+              { icon: "database", title: "File Size Limit", desc: "Upload and clean lists up to 50MB per file with swift processing speeds." },
+              { icon: "format_list_numbered", title: "Row Threshold", desc: "Clean up to 100,000 lead records per upload session with zero latency issues." }
+            ].map((item, idx) => (
               <div
-                key={name}
-                className={`bg-white border border-slate-200 rounded-2xl px-5 py-3 text-[12px] sm:text-[13px] font-bold text-slate-800 hover:border-indigo-300 hover:shadow transition-all duration-200 fade-in-slide reveal-delay-${(idx % 5) + 1}`}
+                key={idx}
+                className="p-6 bg-white border border-slate-200/60 rounded-3xl shadow-sm text-center pop-reveal"
+                style={{ transitionDelay: `${idx * 80}ms` }}
               >
-                {name}
+                <div className="w-12 h-12 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 mb-4 mx-auto">
+                  <span className="material-symbols-outlined text-[24px]">{item.icon}</span>
+                </div>
+                <h3 className="text-lg font-bold text-slate-800 mb-2">{item.title}</h3>
+                <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Data Privacy & Security Section ── */}
+      <section id="privacy" className="py-20 bg-white border-b border-slate-100 reveal-section">
+        <div className="antigravity-container w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-6 pop-reveal reveal-delay-1">
+              <span className="inline-block text-[11px] font-bold tracking-widest text-indigo-600 uppercase bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full">
+                Security First
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                Your lead data is fully secure
+              </h2>
+              <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+                We know your lead lists contain proprietary and sensitive contact details. That is why LeadSanity enforces strict zero-persistence data hygiene policies.
+              </p>
+              <ul className="space-y-3.5 text-xs sm:text-sm font-semibold text-slate-700">
+                <li className="flex items-center gap-2"><span className="material-symbols-outlined text-green-500 text-[18px] fill">check_circle</span>Transient, in-memory cleaning processing</li>
+                <li className="flex items-center gap-2"><span className="material-symbols-outlined text-green-500 text-[18px] fill">check_circle</span>Automatic session data deletion upon exit</li>
+                <li className="flex items-center gap-2"><span className="material-symbols-outlined text-green-500 text-[18px] fill">check_circle</span>End-to-end SSL/TLS transmission encryption</li>
+              </ul>
+            </div>
+
+            <div className="flex justify-center pop-reveal reveal-delay-2">
+              <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-8 shadow-md flex items-center gap-6 max-w-md">
+                <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                  <span className="material-symbols-outlined text-[36px]">shield</span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800 mb-1">Zero-Persistence Policy</h3>
+                  <p className="text-slate-500 text-xs sm:text-sm leading-relaxed">
+                    LeadSanity does not write your uploaded list files or contacts to databases or logs. Everything stays in memory and vanishes when your cleaning session ends.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQ Section ── */}
+      <section id="faq" className="py-20 bg-slate-50 border-b border-slate-100 reveal-section">
+        <div className="antigravity-container w-full">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <span className="text-[11px] font-bold tracking-widest text-indigo-600 uppercase bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full">
+              FAQ
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mt-4 mb-4">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+              Find answers to the most common queries about our lead-cleaning modules and safety standards.
+            </p>
+          </div>
+
+          <div className="max-w-3xl mx-auto space-y-4">
+            {[
+              {
+                q: "How does LeadSanity handle my uploaded lead lists?",
+                a: "LeadSanity cleans your files in-memory and deletes them immediately after you download the sanitized output or close the session. Your contact data is never saved, cached, or persisted on our servers."
+              },
+              {
+                q: "Does it cost anything to clean data?",
+                a: "You can try out LeadSanity completely free. In sandbox mode, you can run simulations with mock domains to explore the cleaning engine's capabilities. For live outbound cleaning, standard verification applies."
+              },
+              {
+                q: "Which lead providers and formats are supported?",
+                a: "We support CSV (.csv) and Excel (.xlsx, .xls) files exported from ZoomInfo, Apollo, Sales Navigator, seamless.ai, Lusha, or any custom web scraper. Our engine auto-maps recognized columns automatically."
+              },
+              {
+                q: "What duplicate checks are conducted?",
+                a: "Our engine performs fuzzy deduplication. It flags similar company names (e.g. 'Acme Corp.' and 'Acme L.L.C.') and removes exact duplicate emails or cell phone rows based on your configurations."
+              },
+              {
+                q: "Can I save my column cleaning preferences?",
+                a: "Yes! When you create an account, your preferred column mapping configurations and active cleaning choices are securely stored in your profile and auto-loaded for future cleaning sessions."
+              }
+            ].map((faq, idx) => (
+              <div
+                key={idx}
+                className="border border-slate-200 rounded-2xl overflow-hidden bg-white hover:bg-slate-50 transition-all duration-300 pop-reveal"
+                style={{ transitionDelay: `${idx * 80}ms` }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setActiveFaq(activeFaq === idx ? null : idx)}
+                  className="w-full flex items-center justify-between p-5 text-left font-bold text-slate-800 text-[14px] sm:text-base focus:outline-none"
+                >
+                  <span>{faq.q}</span>
+                  <span className={`material-symbols-outlined text-[20px] transition-transform duration-300 ${activeFaq === idx ? "rotate-180 text-indigo-600" : "text-slate-400"}`}>
+                    keyboard_arrow_down
+                  </span>
+                </button>
+                <div
+                  className={`transition-all duration-300 ease-in-out overflow-hidden ${activeFaq === idx ? "max-h-[200px] border-t border-slate-200" : "max-h-0"}`}
+                >
+                  <p className="p-5 text-xs sm:text-sm text-slate-600 leading-relaxed bg-white">
+                    {faq.a}
+                  </p>
+                </div>
               </div>
             ))}
           </div>

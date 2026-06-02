@@ -1,0 +1,41 @@
+Person First Name,Person Last Name,Job Title,Company,Email Address,Direct Phone,Mobile Phone,LinkedIn URL,City,State,Country,Website,Industry,Employees,Annual Revenue,Junk Column 1,Internal Notes,ZI Score
+John,Doe,Sales Director,Acme Inc,john.doe@acme.com,+1 (555) 123-4567,555-987-6543,https://www.linkedin.com/in/johndoe,New york,ny,US,http://acme.com/,Software,250,$50M,Trash1,Notes1,95
+JANE,SMITH,Marketing VP,TECHSTART LLC,JANE.SMITH@TECHSTART.IO,+1 555-222-3333,,linkedin.com/in/janesmith?trk=profile_share,SAN FRANCISCO,CA,USA,techstart.io/,Technology,50,$10M,Trash2,Notes2,80
+John,Doe,Director of Sales,Acme,john.doe@acme.com,+1-555-123-4567,,https://www.linkedin.com/in/johndoe,New York City,New York,United States,https://acme.com,Software,250,50000000,Trash3,Duplicate notes,92
+Bob,Jones,Engineering Lead,Globalnet Corp,bjones_globalnet.net,555-333-4444,,https://www.linkedin.com/in/bobjones,Chicago,IL,U.S.A.,http://www.globalnet.net,Networking,1200,$300M,Trash4,Notes,70
+Charlie,Brown,Manager,Red Balloon,charlie@redballoon,+1 555 444 5555,,linkedin.com/in/charliebrown,Minneapolis,MN,US,http://redballoon.org/,Retail,15,$2M,Trash5,Notes,60
+,,,,,,,,,,,,,,,,,
+Diana,Prince,Security Officer,Themyscira LLC,diana@amazon.org,555-12,,https://www.linkedin.com/in/dianaprince,Washington,DC,united states of america,https://amazon.org/,Security,5,$500K,Trash6,Notes,85
+Evan,Wright,Lead Architect,Design Co.,evan.wright@designco.com,555-PHONE-1,,https://www.linkedin.com/in/evanwright/,Boston,MA,US,designco.com,Design,80,$15M,Trash7,Notes,78
+  Fiona  ,  Gallagher  ,Operations Coordinator,Patty's Pub,  fiona.g@pattys.com  ,555-777-8888,,linkedin.com/in/fionagallagher,Chicago,IL,US,https://pattyspub.com,Hospitality,12,$1M,Trash8,Notes,50
+Jane,Smith,Marketing VP,Techstart LLC,jane.smith@techstart.io,+1 555-222-3333,,https://www.linkedin.com/in/janesmith,San Francisco,CA,US,https://techstart.io,Technology,50,$10M,Trash,Notes,80
+George,Windsor,HR Manager,Royal Trust,george@royaltrust.co.uk,+44 20 7946 0958,,https://www.linkedin.com/company/royaltrust,London,,UK,http://royaltrust.co.uk/,Finance,1500,$250M,,,90
+George,Windsor-Copied,HR Manager,Royal Trust Copy,george.w@royaltrust.co.uk,+44 20 7946 0958,,https://www.linkedin.com/company/royaltrust,London,,u.k.,http://royaltrust.co.uk,Finance,1500,$250M,,,90
+hassan,bin-ali,Sales exec,emirates tech pvt ltd,hassan.ali@emirates.ae,+971-4-1234567,,https://www.linkedin.com/in/hassanbinali?ref=sales,dubai,Dubai,uae,http://emtech.ae,Tech,45,$8M,Trash,,88
+Ian,Malcolm,Consultant,InGen,ian..malcolm@ingen.org,555-888-9999,,https://www.linkedin.com/in/ianmalcolm,Costa Rica,,Costa Rica,https://ingen.org,Biotech,300,$120M,,,91
+Julia,Roberts,Actress,Hollywood Inc,julia@.com,555-123-0000,,https://www.linkedin.com/in/juliaroberts,Los Angeles,California,USA,https://hollywood.com,Entertainment,100,$40M,,,84
+,,,,,,,,,,,,,,,,,
+Hassan,Bin Ali,Sales Exec,Emirates Tech,hassan.ali@emirates.ae,+971-4-1234567,,https://www.linkedin.com/in/hassanbinali,Dubai,Dubai,UAE,https://emtech.ae,Tech,45,$8M,,,88
+Kevin,Bacon,Actor,Six Degrees,kevin@sixdegrees.com,+1-555-123-4567890123,,https://www.linkedin.com/in/kevinbacon,Philadelphia,PA,US,http://sixdegrees.com,Media,10,$1M,,,75
+Lara,Croft,Explorer,Croft Holdings,lara@croft.com,555-999-0000,,https://www.linkedin.com/croft,London,,UK,https://croft.com/,Archeology,1,$100M,,,98
+Lara,Croft,Tomb Raider,Croft Holdings,lara.croft@croft.com,555-999-0000,,https://www.linkedin.com/company/croft-holdings,London,,United Kingdom,https://croft.com,Archeology,1,$100M,,,98
+Michael,Scott,,Company 20 LLC,michael.scott20@example.com,555-0120,,https://www.linkedin.com/in/michaelscott,,,,https://company20.com,,,,,,
+Nancy,Drew,Security Officer,Company 21 LLC,nancy.drew21@example.com,555-0121,,https://www.linkedin.com/in/nancydrew,Washington,DC,united states of america,https://company21.com,Security,5,$500K,Trash6,Notes,85
+Oliver,Queen,Lead Architect,Company 22 LLC,oliver.queen22@example.com,555-0122,,https://www.linkedin.com/in/oliverqueen,Boston,MA,US,https://company22.com,Design,80,$15M,Trash7,Notes,78
+Patricia,Miller,Operations Coordinator,Company 23 LLC,patricia.miller23@example.com,555-0123,,https://www.linkedin.com/in/patriciamiller,Chicago,IL,US,https://company23.com,Hospitality,12,$1M,Trash8,Notes,50
+Quincy,Jones,Marketing VP,Company 24 LLC,quincy.jones24@example.com,555-0124,,https://www.linkedin.com/in/quincyjones,San Francisco,CA,US,https://company24.com,Technology,50,$10M,Trash,Notes,80
+,,,,,,,,,,,,,,,,,
+Steven,Rogers,HR Manager,Company 26 LLC,steven.rogers26@example.com,555-0126,,https://www.linkedin.com/in/stevenrogers,London,,u.k.,https://company26.com,Finance,1500,$250M,,,90
+Tina,Turner,Sales exec,Company 27 LLC,tina.turner27@example.com,555-0127,,https://www.linkedin.com/in/tinaturner,dubai,Dubai,uae,https://company27.com,Tech,45,$8M,Trash,,88
+Victor,Valdes,Consultant,Company 28 LLC,victor.valdes28@example.com,555-0128,,https://www.linkedin.com/in/victorvaldes,Costa Rica,,Costa Rica,https://company28.com,Biotech,300,$120M,,,91
+Wendy,Wu,Actress,Company 29 LLC,wendy.wu29@example.com,555-0129,,https://www.linkedin.com/in/wendywu,Los Angeles,California,USA,https://company29.com,Entertainment,100,$40M,,,84
+Xavier,Xavier,Sales Director,Company 30 LLC,xavier.xavier30@example.com,555-0130,555-987-6543,https://www.linkedin.com/in/xavierxavier,New york,ny,US,https://company30.com,Software,250,$50M,Trash1,Notes1,95
+Yolanda,Young,Marketing VP,Company 31 LLC,yolanda.young31@example.com,555-0131,,https://www.linkedin.com/in/yolandayoung,SAN FRANCISCO,CA,USA,https://company31.com,Technology,50,$10M,Trash2,Notes2,80
+Zachary,Zimmerman,Director of Sales,Company 32 LLC,zachary.zimmerman32@example.com,555-0132,,https://www.linkedin.com/in/zacharyzimmerman,New York City,New York,United States,https://company32.com,Software,250,50000000,Trash3,Duplicate notes,92
+Arthur,Pendragon,Engineering Lead,Company 33 LLC,arthur.pendragon33@example.com,555-0133,,https://www.linkedin.com/in/arthurpendragon,Chicago,IL,U.S.A.,https://company33.com,Networking,1200,$300M,Trash4,Notes,70
+Beatrice,Kiddo,Manager,Company 34 LLC,beatrice.kiddo34@example.com,555-0134,,https://www.linkedin.com/in/beatricekiddo,Minneapolis,MN,US,https://company34.com,Retail,15,$2M,Trash5,Notes,60
+Connor,McLeod,,Company 35 LLC,connor.mcleod35@example.com,555-0135,,https://www.linkedin.com/in/connormcleod,,,,https://company35.com,,,,,,
+Deborah,Hale,Security Officer,Company 36 LLC,deborah.hale36@example.com,555-0136,,https://www.linkedin.com/in/deborahhale,Washington,DC,united states of america,https://company36.com,Security,5,$500K,Trash6,Notes,85
+Edward,Elric,Lead Architect,Company 37 LLC,edward.elric37@example.com,555-0137,,https://www.linkedin.com/in/edwardelric,Boston,MA,US,https://company37.com,Design,80,$15M,Trash7,Notes,78
+Felicia,Hardy,Operations Coordinator,Company 38 LLC,felicia.hardy38@example.com,555-0138,,https://www.linkedin.com/in/feliciahardy,Chicago,IL,US,https://company38.com,Hospitality,12,$1M,Trash8,Notes,50
+Gerald,Butler,Marketing VP,Company 39 LLC,gerald.butler39@example.com,555-0139,,https://www.linkedin.com/in/geraldbutler,San Francisco,CA,US,https://company39.com,Technology,50,$10M,Trash,Notes,80
