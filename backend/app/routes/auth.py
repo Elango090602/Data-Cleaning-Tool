@@ -15,6 +15,7 @@ from datetime import datetime
 from app.utils.db import get_connection, execute_sql
 from app.utils.jwt import create_jwt, decode_jwt
 from app.utils.auth_deps import get_current_user as get_current_user_from_jwt
+from app.utils.hash import hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -853,3 +854,369 @@ def copy_assets():
         print(f"[ASSET_COPY] Skipping asset copy on missing files: {e}")
         
     return {"success": True, "message": "Assets copied successfully!"}
+
+# ─── PASSWORD AUTHENTICATION FLOWS (SIGNUP, LOGIN, FORGOT PASSWORD) ───
+
+class RegisterRequest(BaseModel):
+    email: str
+    password: str
+    name: str
+    role: str
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        v_clean = v.strip().lower()
+        if not EMAIL_REGEX.match(v_clean):
+            raise ValueError("Invalid email address format.")
+        return v_clean
+
+class VerifyRegistrationRequest(BaseModel):
+    email: str
+    otp: str
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        v_clean = v.strip().lower()
+        if not EMAIL_REGEX.match(v_clean):
+            raise ValueError("Invalid email address format.")
+        return v_clean
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        v_clean = v.strip().lower()
+        if not EMAIL_REGEX.match(v_clean):
+            raise ValueError("Invalid email address format.")
+        return v_clean
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        v_clean = v.strip().lower()
+        if not EMAIL_REGEX.match(v_clean):
+            raise ValueError("Invalid email address format.")
+        return v_clean
+
+class ResetPasswordRequest(BaseModel):
+    email: str
+    otp: str
+    new_password: str
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        v_clean = v.strip().lower()
+        if not EMAIL_REGEX.match(v_clean):
+            raise ValueError("Invalid email address format.")
+        return v_clean
+
+@router.post("/register")
+def register_user(payload: RegisterRequest, background_tasks: BackgroundTasks):
+    email = payload.email
+    password = payload.password.strip()
+    name = payload.name.strip()
+    role = payload.role.strip()
+    
+    if len(password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters long.")
+        
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Check if user already exists
+    execute_sql(cursor, "SELECT id, otp_verified FROM users WHERE email = ?", (email,))
+    user = cursor.fetchone()
+    
+    hashed_pwd = hash_password(password)
+    profile_pic = f"https://api.dicebear.com/7.x/initials/svg?seed={name}"
+    
+    # Initialize default profile settings
+    default_settings = {
+        "first_name": name,
+        "last_name": "",
+        "company_name": "",
+        "job_role": role,
+        "export_format": "csv",
+        "cleaning_preferences": {
+            "validate_emails": True,
+            "validate_phones": True,
+            "clean_linkedin": True,
+            "clean_websites": True,
+            "remove_duplicates": True,
+            "remove_blank_rows": True,
+            "generate_invalid_file": True,
+            "generate_duplicate_file": True
+        }
+    }
+    settings_str = json.dumps(default_settings)
+    
+    if user:
+        if isinstance(user, tuple) or isinstance(user, list):
+            user_id, otp_verified = user[0], user[1]
+        else:
+            user_id = user["id"]
+            otp_verified = user["otp_verified"]
+            
+        if otp_verified:
+            conn.close()
+            raise HTTPException(status_code=400, detail="An account with this email address already exists. Please log in.")
+        else:
+            # Overwrite unverified account with new registration details
+            execute_sql(cursor, """
+                UPDATE users 
+                SET name = ?, password_hash = ?, role = ?, profile_picture = ?, profile_settings = ?
+                WHERE id = ?
+            """, (name, hashed_pwd, role, profile_pic, settings_str, user_id))
+    else:
+        # Create a new unverified user
+        execute_sql(cursor, """
+            INSERT INTO users (google_id, name, email, password_hash, role, profile_picture, otp_verified, profile_settings, created_at, last_login)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        """, (f"email-{secrets.token_hex(8)}", name, email, hashed_pwd, role, profile_pic, False, settings_str))
+        
+    conn.commit()
+    
+    # Generate OTP
+    otp = "123456" if is_mock_email(email) else "".join([str(secrets.randbelow(10)) for _ in range(6)])
+    expires_at = datetime.fromtimestamp(time.time() + 600) # 10 mins
+    
+    execute_sql(cursor, """
+        INSERT INTO otp_verifications (email, otp_code, expires_at, is_used, created_at)
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+    """, (email, otp, expires_at, False))
+    conn.commit()
+    conn.close()
+    
+    background_tasks.add_task(send_otp_via_email, email, otp)
+    
+    return {
+        "success": True,
+        "message": "Account created. A 6-digit verification code has been sent to your email.",
+        "sandbox": is_sandbox_mode(email)
+    }
+
+@router.post("/verify-registration")
+def verify_registration(payload: VerifyRegistrationRequest):
+    email = payload.email
+    otp = payload.otp.strip()
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Query otp_verifications
+    execute_sql(cursor, """
+        SELECT id, expires_at, is_used FROM otp_verifications 
+        WHERE email = ? AND otp_code = ? AND is_used = False
+        ORDER BY id DESC LIMIT 1
+    """, (email, otp))
+    
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Invalid verification code. Please try again.")
+        
+    if isinstance(row, tuple) or isinstance(row, list):
+        v_id, expires_at, is_used = row
+    else:
+        v_id = row["id"]
+        expires_at = row["expires_at"]
+        is_used = row["is_used"]
+        
+    # Expiration parser
+    if isinstance(expires_at, str):
+        expires_dt = datetime.fromisoformat(expires_at.split(".")[0].replace("Z", ""))
+    else:
+        expires_dt = expires_at
+        
+    if expires_dt.tzinfo is not None:
+        expires_dt = expires_dt.replace(tzinfo=None)
+        
+    if datetime.utcnow() > expires_dt:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Verification code has expired. Please request a new one.")
+        
+    # Activate user
+    execute_sql(cursor, "UPDATE otp_verifications SET is_used = True WHERE id = ?", (v_id,))
+    execute_sql(cursor, "UPDATE users SET otp_verified = True, last_login = CURRENT_TIMESTAMP WHERE email = ?", (email,))
+    conn.commit()
+    
+    # Get user profile details
+    execute_sql(cursor, "SELECT name, profile_picture FROM users WHERE email = ?", (email,))
+    user = cursor.fetchone()
+    conn.close()
+    
+    if isinstance(user, tuple) or isinstance(user, list):
+        db_name, db_pic = user
+    else:
+        db_name = user["name"]
+        db_pic = user["profile_picture"]
+        
+    token = create_jwt({"email": email})
+    
+    return {
+        "success": True,
+        "token": token,
+        "user": {
+            "email": email,
+            "name": db_name,
+            "profile_picture": db_pic
+        }
+    }
+
+@router.post("/login")
+def login_user(payload: LoginRequest):
+    email = payload.email
+    password = payload.password.strip()
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    execute_sql(cursor, "SELECT id, name, password_hash, otp_verified, profile_picture FROM users WHERE email = ?", (email,))
+    user = cursor.fetchone()
+    
+    if not user:
+        conn.close()
+        raise HTTPException(status_code=400, detail="No account found with this email. Please sign up.")
+        
+    if isinstance(user, tuple) or isinstance(user, list):
+        user_id, name, db_hash, otp_verified, profile_picture = user
+    else:
+        user_id = user["id"]
+        name = user["name"]
+        db_hash = user["password_hash"]
+        otp_verified = user["otp_verified"]
+        profile_picture = user["profile_picture"]
+        
+    if not db_hash:
+        conn.close()
+        raise HTTPException(status_code=400, detail="This account was registered through Google. Please log in using Google.")
+        
+    if not verify_password(password, db_hash):
+        conn.close()
+        raise HTTPException(status_code=400, detail="Incorrect password. Please try again.")
+        
+    if not otp_verified:
+        conn.close()
+        return JSONResponse(status_code=400, content={
+            "status": "UNVERIFIED_ACCOUNT",
+            "detail": "Your account email is unverified. Please complete verification."
+        })
+        
+    # Update last login
+    execute_sql(cursor, "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+    
+    token = create_jwt({"email": email})
+    
+    return {
+        "success": True,
+        "token": token,
+        "user": {
+            "email": email,
+            "name": name,
+            "profile_picture": profile_picture
+        }
+    }
+
+@router.post("/forgot-password")
+def forgot_password(payload: ForgotPasswordRequest, background_tasks: BackgroundTasks):
+    email = payload.email
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    execute_sql(cursor, "SELECT id, name FROM users WHERE email = ?", (email,))
+    user = cursor.fetchone()
+    
+    if not user:
+        conn.close()
+        return {
+            "success": True,
+            "message": "If the account exists, a password reset code has been sent.",
+            "sandbox": False
+        }
+        
+    # Generate password reset OTP
+    otp = "123456" if is_mock_email(email) else "".join([str(secrets.randbelow(10)) for _ in range(6)])
+    expires_at = datetime.fromtimestamp(time.time() + 600) # 10 mins
+    
+    execute_sql(cursor, """
+        INSERT INTO otp_verifications (email, otp_code, expires_at, is_used, created_at)
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+    """, (email, otp, expires_at, False))
+    conn.commit()
+    conn.close()
+    
+    background_tasks.add_task(send_otp_via_email, email, otp)
+    
+    return {
+        "success": True,
+        "message": "A 6-digit password reset code has been sent to your email.",
+        "sandbox": is_sandbox_mode(email)
+    }
+
+@router.post("/reset-password")
+def reset_password(payload: ResetPasswordRequest):
+    email = payload.email
+    otp = payload.otp.strip()
+    new_password = payload.new_password.strip()
+    
+    if len(new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters long.")
+        
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Verify the reset OTP
+    execute_sql(cursor, """
+        SELECT id, expires_at, is_used FROM otp_verifications 
+        WHERE email = ? AND otp_code = ? AND is_used = False
+        ORDER BY id DESC LIMIT 1
+    """, (email, otp))
+    
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Invalid reset code. Please check and try again.")
+        
+    if isinstance(row, tuple) or isinstance(row, list):
+        v_id, expires_at, is_used = row
+    else:
+        v_id = row["id"]
+        expires_at = row["expires_at"]
+        is_used = row["is_used"]
+        
+    # Expiration parser
+    if isinstance(expires_at, str):
+        expires_dt = datetime.fromisoformat(expires_at.split(".")[0].replace("Z", ""))
+    else:
+        expires_dt = expires_at
+        
+    if expires_dt.tzinfo is not None:
+        expires_dt = expires_dt.replace(tzinfo=None)
+        
+    if datetime.utcnow() > expires_dt:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Reset code has expired. Please request a new one.")
+        
+    # Update password
+    hashed_pwd = hash_password(new_password)
+    execute_sql(cursor, "UPDATE otp_verifications SET is_used = True WHERE id = ?", (v_id,))
+    execute_sql(cursor, "UPDATE users SET password_hash = ?, otp_verified = True, last_login = CURRENT_TIMESTAMP WHERE email = ?", (hashed_pwd, email))
+    conn.commit()
+    conn.close()
+    
+    return {
+        "success": True,
+        "message": "Password updated successfully. Please log in with your new password."
+    }

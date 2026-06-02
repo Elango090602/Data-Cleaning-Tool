@@ -282,3 +282,107 @@ export async function googleLoginSimulated(email, name, flow = "signup") {
   return response.json();
 }
 
+/**
+ * Register a new user with email, password, name, and role.
+ */
+export async function registerUser({ email, password, name, role }) {
+  const response = await fetch(`${BASE_URL}/auth/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, password, name, role }),
+  });
+
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.detail || "Failed to register user. Please try again.");
+  }
+
+  return response.json();
+}
+
+/**
+ * Verify a newly registered user's OTP.
+ */
+export async function verifyRegistration({ email, otp }) {
+  const response = await fetch(`${BASE_URL}/auth/verify-registration`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, otp }),
+  });
+
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.detail || "Invalid registration verification code. Please try again.");
+  }
+
+  return response.json();
+}
+
+/**
+ * Login a registered user with email and password.
+ */
+export async function loginUser({ email, password }) {
+  const response = await fetch(`${BASE_URL}/auth/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    const error = new Error(errData.detail || "Failed to login. Please try again.");
+    error.status = response.status;
+    error.data = errData;
+    throw error;
+  }
+
+  return response.json();
+}
+
+/**
+ * Request a password reset code.
+ */
+export async function forgotPassword(email) {
+  const response = await fetch(`${BASE_URL}/auth/forgot-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.detail || "Failed to process request. Please try again.");
+  }
+
+  return response.json();
+}
+
+/**
+ * Reset password using the reset OTP.
+ */
+export async function resetPassword({ email, otp, newPassword }) {
+  const response = await fetch(`${BASE_URL}/auth/reset-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, otp, new_password: newPassword }),
+  });
+
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.detail || "Failed to reset password. Please check your OTP and try again.");
+  }
+
+  return response.json();
+}
+
+

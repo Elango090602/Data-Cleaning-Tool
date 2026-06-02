@@ -7,7 +7,12 @@ import {
   exchangeGoogleCode, 
   verifyOtpSecure, 
   resendOtpSecure, 
-  googleLoginSimulated 
+  googleLoginSimulated,
+  registerUser,
+  verifyRegistration,
+  loginUser,
+  forgotPassword,
+  resetPassword
 } from "../services/api";
 import { supabase } from "../services/supabaseClient";
 import UserProfileModal from "../components/UserProfileModal";
@@ -99,8 +104,16 @@ export default function LandingPage({ onEnterApp }) {
   const [googleName, setGoogleName] = useState("");
   const [googleError, setGoogleError] = useState("");
 
+  // Password-based Auth States
+  const [authName, setAuthName] = useState("");
+  const [authRole, setAuthRole] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+
   // Additional UX States
-  const [authMode, setAuthMode] = useState("signup"); // "signup" or "signin"
+  const [authMode, setAuthMode] = useState("signup"); // "signup" or "signin" or "forgot_password"
   const [googleLoadingStep, setGoogleLoadingStep] = useState(""); // "", "verifying", "sending_otp"
   const [googleWarningType, setGoogleWarningType] = useState(null); // null, "already_exists", "not_found"
   const [googleWarningMsg, setGoogleWarningMsg] = useState("");
@@ -351,6 +364,12 @@ export default function LandingPage({ onEnterApp }) {
       setOtpSent(false);
       setOtpCode("");
       setSuccessMessage("");
+      setAuthName("");
+      setAuthRole("");
+      setAuthPassword("");
+      setShowPassword(false);
+      setNewPassword("");
+      setShowNewPassword(false);
     }
   };
 
@@ -451,6 +470,193 @@ export default function LandingPage({ onEnterApp }) {
       } else {
         setOtpError(err.message || "Invalid or expired code. Please try again.");
       }
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  const handleRegister = async (e) => {
+    if (e) e.preventDefault();
+    if (!authName.trim()) {
+      setOtpError("Please enter your full name.");
+      return;
+    }
+    if (!authRole.trim()) {
+      setOtpError("Please select or enter your job role.");
+      return;
+    }
+    if (!loginEmail || !loginEmail.includes("@")) {
+      setOtpError("Please enter a valid email address.");
+      return;
+    }
+    if (authPassword.length < 6) {
+      setOtpError("Password must be at least 6 characters long.");
+      return;
+    }
+
+    setIsSendingOtp(true);
+    setOtpError("");
+    setSuccessMessage("");
+    try {
+      const response = await registerUser({
+        email: loginEmail,
+        password: authPassword,
+        name: authName,
+        role: authRole
+      });
+      if (response.success) {
+        setOtpSent(true);
+        setCountdown(60);
+        setSandboxNotice(response.sandbox);
+        setSuccessMessage("Account details registered! Enter verification code.");
+      }
+    } catch (err) {
+      setOtpError(err.message || "Failed to register user account.");
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleVerifyRegistrationOTP = async (e) => {
+    if (e) e.preventDefault();
+    if (otpCode.length !== 6 || isNaN(otpCode)) {
+      setOtpError("Please enter a valid 6-digit numeric code.");
+      return;
+    }
+
+    setIsVerifyingOtp(true);
+    setOtpError("");
+    setSuccessMessage("");
+    try {
+      const response = await verifyRegistration({ email: loginEmail, otp: otpCode });
+      if (response.success) {
+        setIsVerifiedSuccess(true);
+        setSuccessMessage("Account verified and activated!");
+        localStorage.setItem("lead_cleaner_token", response.token);
+        localStorage.setItem("lead_cleaner_email", response.user.email);
+        localStorage.setItem("lead_cleaner_name", response.user.name);
+        setCurrentUser(response.user.email);
+        
+        setTimeout(() => {
+          setIsVerifiedSuccess(false);
+          setSuccessMessage("");
+          setShowLoginModal(false);
+          onEnterApp();
+        }, 1200);
+      }
+    } catch (err) {
+      setOtpError(err.message || "Invalid or expired code. Please try again.");
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  const handleLogin = async (e) => {
+    if (e) e.preventDefault();
+    if (!loginEmail || !loginEmail.includes("@")) {
+      setOtpError("Please enter a valid email address.");
+      return;
+    }
+    if (!authPassword) {
+      setOtpError("Please enter your password.");
+      return;
+    }
+
+    setIsSendingOtp(true);
+    setOtpError("");
+    setSuccessMessage("");
+    try {
+      const response = await loginUser({ email: loginEmail, password: authPassword });
+      if (response.success) {
+        setIsVerifiedSuccess(true);
+        setSuccessMessage("Login successful!");
+        localStorage.setItem("lead_cleaner_token", response.token);
+        localStorage.setItem("lead_cleaner_email", response.user.email);
+        localStorage.setItem("lead_cleaner_name", response.user.name);
+        setCurrentUser(response.user.email);
+        
+        setTimeout(() => {
+          setIsVerifiedSuccess(false);
+          setSuccessMessage("");
+          setShowLoginModal(false);
+          onEnterApp();
+        }, 1200);
+      }
+    } catch (err) {
+      if (err.data && err.data.status === "UNVERIFIED_ACCOUNT") {
+        setOtpError("Your account email is unverified. Sending verification code...");
+        try {
+          const res = await resendOtpSecure(loginEmail);
+          setOtpSent(true);
+          setCountdown(60);
+          setSandboxNotice(res.sandbox);
+          setSuccessMessage("A verification code has been sent to complete your signup.");
+        } catch (sendErr) {
+          setOtpError(sendErr.message || "Account is unverified, and sending a verification code failed.");
+        }
+      } else {
+        setOtpError(err.message || "Incorrect password or account not found.");
+      }
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleForgotPassword = async (e) => {
+    if (e) e.preventDefault();
+    if (!loginEmail || !loginEmail.includes("@")) {
+      setOtpError("Please enter a valid email address.");
+      return;
+    }
+
+    setIsSendingOtp(true);
+    setOtpError("");
+    setSuccessMessage("");
+    try {
+      const response = await forgotPassword(loginEmail);
+      if (response.success) {
+        setOtpSent(true);
+        setCountdown(60);
+        setSandboxNotice(response.sandbox);
+        setSuccessMessage("Password reset code sent. Check your email!");
+      }
+    } catch (err) {
+      setOtpError(err.message || "Failed to request password reset code.");
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    if (e) e.preventDefault();
+    if (otpCode.length !== 6 || isNaN(otpCode)) {
+      setOtpError("Please enter a valid 6-digit numeric code.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setOtpError("New password must be at least 6 characters long.");
+      return;
+    }
+
+    setIsVerifyingOtp(true);
+    setOtpError("");
+    setSuccessMessage("");
+    try {
+      const response = await resetPassword({
+        email: loginEmail,
+        otp: otpCode,
+        newPassword: newPassword
+      });
+      if (response.success) {
+        setSuccessMessage("Password updated successfully! Please login.");
+        setOtpSent(false);
+        setOtpCode("");
+        setNewPassword("");
+        setAuthPassword("");
+        setAuthMode("signin");
+      }
+    } catch (err) {
+      setOtpError(err.message || "Failed to reset password. Please check the code.");
     } finally {
       setIsVerifyingOtp(false);
     }
@@ -1125,18 +1331,22 @@ export default function LandingPage({ onEnterApp }) {
                 <div className="text-center mb-6">
                   <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center mx-auto mb-4 text-indigo-600">
                     <span className="material-symbols-outlined text-[28px]">
-                      {otpSent ? "mark_email_read" : "vpn_key"}
+                      {otpSent ? "mark_email_read" : (authMode === "forgot_password" ? "lock_reset" : "vpn_key")}
                     </span>
                   </div>
                   <h3 className="text-xl font-extrabold text-slate-800">
-                    {otpSent ? "Verify your code" : (authMode === "signup" ? "Create your account" : "Sign In to LeadSanity")}
+                    {otpSent 
+                      ? (authMode === "forgot_password" ? "Reset Credentials" : "Verify your code") 
+                      : (authMode === "signup" ? "Create your account" : (authMode === "forgot_password" ? "Reset your password" : "Sign In to LeadSanity"))}
                   </h3>
                   <p className="text-slate-500 text-[12px] sm:text-[13px] mt-1.5 leading-relaxed">
                     {otpSent
                       ? `We've sent a verification code to ${loginEmail}.`
                       : (authMode === "signup"
-                        ? "Enter your email address to register and access your workspace."
-                        : "Enter your email address to receive a secure login verification code.")}
+                        ? "Enter your details below to register and access your workspace."
+                        : (authMode === "forgot_password" 
+                          ? "Enter your email address and we'll send you a password reset code."
+                          : "Enter your email and password to log in."))}
                   </p>
                   {successMessage && (
                     <div className="mt-2 text-[11px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg py-1 px-3 inline-block">
@@ -1147,7 +1357,73 @@ export default function LandingPage({ onEnterApp }) {
 
                 {/* Main Form */}
                 {!otpSent ? (
-                  <form onSubmit={handleSendOTP} className="space-y-4">
+                  <form onSubmit={
+                    authMode === "signup" 
+                      ? handleRegister 
+                      : (authMode === "forgot_password" ? handleForgotPassword : handleLogin)
+                  } className="space-y-4">
+                    
+                    {/* Full Name (Sign Up only) */}
+                    {authMode === "signup" && (
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                          Full Name
+                        </label>
+                        <div className="relative">
+                          <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+                            person
+                          </span>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. John Doe"
+                            value={authName}
+                            onChange={(e) => {
+                              setAuthName(e.target.value);
+                              setOtpError("");
+                            }}
+                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-[13px] sm:text-[14px] bg-slate-50 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-semibold text-slate-800"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Job Role Dropdown (Sign Up only) */}
+                    {authMode === "signup" && (
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                          Job Role
+                        </label>
+                        <div className="relative">
+                          <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+                            work
+                          </span>
+                          <select
+                            required
+                            value={authRole}
+                            onChange={(e) => {
+                              setAuthRole(e.target.value);
+                              setOtpError("");
+                            }}
+                            className="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-200 text-[13px] sm:text-[14px] bg-slate-50 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-semibold text-slate-800 appearance-none cursor-pointer"
+                          >
+                            <option value="" disabled>Select your role</option>
+                            <option value="SDR / BDR">SDR / BDR</option>
+                            <option value="Sales Operations Manager">Sales Operations Manager</option>
+                            <option value="Marketing Operations Manager">Marketing Operations Manager</option>
+                            <option value="Growth Marketer">Growth Marketer</option>
+                            <option value="Founder / CEO">Founder / CEO</option>
+                            <option value="Developer / Engineer">Developer / Engineer</option>
+                            <option value="Other">Other</option>
+                          </select>
+                          <span className="material-symbols-outlined absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[18px]">
+                            arrow_drop_down
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Email Address (All modes) */}
                     <div>
                       <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                         Email Address
@@ -1170,6 +1446,55 @@ export default function LandingPage({ onEnterApp }) {
                       </div>
                     </div>
 
+                    {/* Password Field (Sign Up & Sign In only) */}
+                    {(authMode === "signup" || authMode === "signin") && (
+                      <div>
+                        <div className="flex justify-between items-center mb-1.5">
+                          <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                            Password
+                          </label>
+                          {authMode === "signin" && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAuthMode("forgot_password");
+                                setOtpError("");
+                                setSuccessMessage("");
+                              }}
+                              className="text-[11px] font-semibold text-indigo-600 hover:underline focus:outline-none font-bold"
+                            >
+                              Forgot Password?
+                            </button>
+                          )}
+                        </div>
+                        <div className="relative">
+                          <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+                            lock
+                          </span>
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            required
+                            placeholder="At least 6 characters"
+                            value={authPassword}
+                            onChange={(e) => {
+                              setAuthPassword(e.target.value);
+                              setOtpError("");
+                            }}
+                            className="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-200 text-[13px] sm:text-[14px] bg-slate-50 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-semibold text-slate-800"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                          >
+                            <span className="material-symbols-outlined text-[18px] select-none">
+                              {showPassword ? "visibility_off" : "visibility"}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     {otpError && (
                       <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-[11px] sm:text-[12px] font-medium leading-normal animate-shake">
                         <span className="material-symbols-outlined text-[16px] shrink-0">error</span>
@@ -1177,6 +1502,7 @@ export default function LandingPage({ onEnterApp }) {
                       </div>
                     )}
 
+                    {/* Submit Button */}
                     <button
                       type="submit"
                       disabled={isSendingOtp}
@@ -1185,52 +1511,78 @@ export default function LandingPage({ onEnterApp }) {
                       {isSendingOtp ? (
                         <>
                           <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
-                          Sending Code...
+                          {authMode === "signup" ? "Registering..." : (authMode === "forgot_password" ? "Sending Code..." : "Logging in...")}
                         </>
                       ) : (
                         <>
-                          <span className="material-symbols-outlined text-[18px]">send</span>
-                          Send Verification Code
+                          <span className="material-symbols-outlined text-[18px]">
+                            {authMode === "signup" ? "person_add" : (authMode === "forgot_password" ? "send" : "login")}
+                          </span>
+                          {authMode === "signup" ? "Sign Up" : (authMode === "forgot_password" ? "Send Reset Code" : "Log In")}
                         </>
                       )}
                     </button>
 
-
-                    
-                    <div className="text-center pt-2 text-[12px] font-semibold text-slate-500">
-                      {authMode === "signup" ? (
-                        <span>
+                    {/* Toggle Auth Mode Footer Links */}
+                    <div className="text-center pt-2 text-[12px] font-semibold text-slate-500 space-y-2">
+                      {authMode === "signup" && (
+                        <div>
                           Already have an account?{" "}
                           <button
                             type="button"
                             onClick={() => {
                               setAuthMode("signin");
                               setOtpError("");
+                              setSuccessMessage("");
                             }}
-                            className="text-indigo-600 hover:underline focus:outline-none animate-pulse"
+                            className="text-indigo-600 hover:underline focus:outline-none font-bold"
                           >
                             Log in
                           </button>
-                        </span>
-                      ) : (
-                        <span>
+                        </div>
+                      )}
+                      {authMode === "signin" && (
+                        <div>
                           Don't have an account?{" "}
                           <button
                             type="button"
                             onClick={() => {
                               setAuthMode("signup");
                               setOtpError("");
+                              setSuccessMessage("");
                             }}
-                            className="text-indigo-600 hover:underline focus:outline-none animate-pulse"
+                            className="text-indigo-600 hover:underline focus:outline-none font-bold"
                           >
                             Sign up
                           </button>
-                        </span>
+                        </div>
+                      )}
+                      {authMode === "forgot_password" && (
+                        <div>
+                          Remembered your password?{" "}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAuthMode("signin");
+                              setOtpError("");
+                              setSuccessMessage("");
+                            }}
+                            className="text-indigo-600 hover:underline focus:outline-none font-bold"
+                          >
+                            Back to Login
+                          </button>
+                        </div>
                       )}
                     </div>
                   </form>
                 ) : (
-                  <form onSubmit={handleVerifyOTP} className="space-y-4">
+                  <form onSubmit={
+                    authMode === "forgot_password" 
+                      ? handleResetPassword 
+                      : (authMode === "signup" ? handleVerifyRegistrationOTP : handleVerifyOTP)
+                  } className="space-y-4">
+                    
+                    {/* OTP input field */}
                     <div>
                       <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                         Enter 6-Digit OTP
@@ -1253,6 +1605,40 @@ export default function LandingPage({ onEnterApp }) {
                         />
                       </div>
                     </div>
+
+                    {/* New Password field (Forgot Password verification mode) */}
+                    {authMode === "forgot_password" && (
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                          New Password
+                        </label>
+                        <div className="relative">
+                          <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+                            lock_reset
+                          </span>
+                          <input
+                            type={showNewPassword ? "text" : "password"}
+                            required
+                            placeholder="At least 6 characters"
+                            value={newPassword}
+                            onChange={(e) => {
+                              setNewPassword(e.target.value);
+                              setOtpError("");
+                            }}
+                            className="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-200 text-[13px] sm:text-[14px] bg-slate-50 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition-all font-semibold text-slate-800"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                          >
+                            <span className="material-symbols-outlined text-[18px] select-none">
+                              {showNewPassword ? "visibility_off" : "visibility"}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     {otpError && (
                       <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-[11px] sm:text-[12px] font-medium leading-normal animate-shake">
@@ -1277,18 +1663,20 @@ export default function LandingPage({ onEnterApp }) {
 
                     <button
                       type="submit"
-                      disabled={isVerifyingOtp || otpCode.length !== 6}
+                      disabled={isVerifyingOtp || otpCode.length !== 6 || (authMode === "forgot_password" && newPassword.length < 6)}
                       className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-indigo-600 text-white font-bold text-[13px] sm:text-[14px] hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-50 transition-all shadow-md hover:shadow-lg focus:outline-none"
                     >
                       {isVerifyingOtp ? (
                         <>
                           <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
-                          Verifying...
+                          {authMode === "forgot_password" ? "Resetting Password..." : "Verifying..."}
                         </>
                       ) : (
                         <>
-                          <span className="material-symbols-outlined text-[18px]">verified_user</span>
-                          Verify & Access Workspace
+                          <span className="material-symbols-outlined text-[18px]">
+                            {authMode === "forgot_password" ? "lock_reset" : "verified_user"}
+                          </span>
+                          {authMode === "forgot_password" ? "Reset Password" : "Verify & Access Workspace"}
                         </>
                       )}
                     </button>
