@@ -1,124 +1,293 @@
-# LeadSanity (Data Cleaning Tool)
-
-LeadSanity is an enterprise-grade GTM lead data hygiene and formatting platform. It automates the process of cleaning, formatting, and structuring messy CSV/Excel exports from B2B data providers like ZoomInfo, Apollo.io, and LinkedIn Sales Navigator before they are imported into your CRM (HubSpot, Salesforce, etc.).
-
+LeadSanity
+![LeadSanity Landing Page](./a_clean_modern_saas_landing_page_screenshot_her.png)
+LeadSanity is a modern B2B lead data cleaning platform that helps teams upload messy CSV or Excel lead lists, clean and standardize the data, remove duplicates, validate key fields, and export CRM-ready files in minutes.
+It is designed for sales, marketing, and GTM teams that work with exported lead data from tools like ZoomInfo, Apollo.io, LinkedIn Sales Navigator, web scraping sources, or manual Excel sheets.
 ---
-
-## 🚀 Key Features & Layout Upgrades
-
-*   **Premium User Profile Sidebar Card**: Redesigned dashboard profile card featuring a bold, centered initial letter badge inside a soft rounded-square (`rounded-[14px]`) with the brand's royal-blue gradient (`from-[#3b82f6] to-[#1d4ed8]`). Displays the first name along with the job role/subtitle in capitalized letter-spaced text, complete with an integrated logout icon.
-*   **Unified Home Page Header Dropdown Pill**: Elegant pill dropdown capsule (`rounded-full bg-slate-50/50`) in the landing page header containing a circular brand-blue letter badge, capitalized display name, and a downward dropdown indicator chevron for cohesive styling.
-*   **Session Retention & Logo Refresh**: Secure hash-based routing (`#app`) configured in `main.jsx` to preserve active login sessions during page refreshes and logo clicks, allowing users to return to home without terminating active sessions.
-*   **Secure Passwordless Authentication**: Dynamic OTP-based login (6-digit code sent via standard Mail Relays or API integrations).
-*   **Google OAuth Integration**: Flow-based ("signup" and "signin") authentication that guards against account overwrite and missing accounts.
-*   **Intelligent Field Mapping**: Automated detection and grouping of lead sheets (Emails, Names, Phone Numbers, Companies, Job Titles).
-*   **Advanced Deduplication**: Flags and separates clean entries from duplicates/errors into distinct CSV outputs.
-*   **FastAPI Backend with Background Tasks**: OTP generation, database writes, and mail dispatches are processed asynchronously under 50ms.
-*   **Modern React UI**: Sleek, fully responsive dashboard built with Canva-style aesthetics and micro-animations.
-
+Overview
+Messy lead files slow down outreach. Exported datasets often contain inconsistent column names, invalid emails, unformatted phone numbers, duplicate leads, broken LinkedIn URLs, unwanted fields, and incomplete records.
+LeadSanity solves this by turning raw lead data into clean, structured, and usable output files that can be imported into CRMs or outreach tools such as HubSpot, Salesforce, or sales engagement platforms.
 ---
-
-## 🛠️ Project Structure
-
-```
+Key Features
+Upload CSV, XLS, or XLSX lead files
+Auto-detect and map lead fields
+Clean and standardize email addresses
+Format and split phone numbers
+Normalize LinkedIn profile URLs
+Normalize website URLs
+Remove duplicate records
+Identify invalid or incomplete records
+Review quarantined records manually
+Export cleaned data as CSV or Excel
+Secure OTP-based authentication
+Google OAuth login support
+Responsive SaaS-style landing page and dashboard
+---
+Product Preview
+The landing page follows a clean SaaS design with:
+A strong hero section using a purple-to-blue gradient
+Clear headline: Clean messy B2B lead lists in minutes
+Primary CTA for uploading lead files
+Secondary actions for trying sample data and downloading sample output
+Trust metrics such as mapped fields, CRM accuracy, and faster-than-Excel processing
+A modern profile pill with avatar, user name, and dropdown indicator
+Dashboard preview showing raw input converted into sanitized CRM-ready data
+---
+Tech Stack
+Frontend
+React
+Vite
+JavaScript
+Tailwind CSS
+Lenis Smooth Scroll
+Google Fonts
+Backend
+FastAPI
+Python 3.10+
+Uvicorn
+Pandas
+OpenPyXL
+Database
+SQLite for local development
+Supabase PostgreSQL for production
+Authentication and Email
+Passwordless OTP login
+Google OAuth
+Gmail SMTP
+Brevo HTTP API fallback
+Resend HTTP API fallback
+Deployment
+Vercel monorepo deployment
+Vite static frontend build
+FastAPI backend using Vercel Python serverless runtime
+---
+Project Structure
+```text
 zoominfo-lead-cleaner/
-├── backend/                  # FastAPI Application
+├── backend/
 │   ├── app/
-│   │   ├── routes/           # Router endpoints (auth, cleaning, uploads, downloads)
-│   │   ├── utils/            # DB models, file processors, schemas, cleaners
-│   │   └── main.py           # Application entry point
-│   ├── tmp/                  # SQLite storage, uploads & outputs directory (git ignored)
-│   ├── requirements.txt      # Python dependencies
-│   └── .env.example          # Template environment config
-├── frontend/                 # React Application (Vite + Tailwind CSS)
+│   │   ├── models/
+│   │   ├── routes/
+│   │   ├── services/
+│   │   ├── utils/
+│   │   └── main.py
+│   ├── tmp/
+│   ├── requirements.txt
+│   ├── vercel.json
+│   └── .env
+│
+├── frontend/
+│   ├── public/
 │   ├── src/
-│   │   ├── components/       # Reusable UI components & modals
-│   │   ├── pages/            # Page layouts (LandingPage, Dashboard App)
-│   │   └── services/         # API integration layer
-│   ├── package.json          # Node script & dependency declarations
-│   └── tailwind.config.js    # Tailwind layout settings
-└── README.md                 # Main Documentation
+│   │   ├── assets/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── services/
+│   │   ├── index.css
+│   │   └── main.jsx
+│   ├── package.json
+│   ├── tailwind.config.js
+│   ├── vercel.json
+│   └── .env
+│
+├── vercel.json
+└── README.md
 ```
-
 ---
-
-## ⚡ Setup & Installation
-
-### Prerequisite Checklist
-*   Python 3.10+
-*   Node.js 18+
-*   NPM 9+
-
-### 1. Backend Setup
-1. Navigate to the backend folder:
-   ```bash
-   cd backend
-   ```
-2. Create and activate a virtual environment:
-   ```bash
-   python -m venv venv
-   # On Windows:
-   venv\Scripts\activate
-   # On macOS/Linux:
-   source venv/bin/activate
-   ```
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Configure environment variables. Copy `.env.example` to `.env` and fill in Resend and Google OAuth parameters.
-
-### 2. Frontend Setup
-1. Navigate to the frontend folder:
-   ```bash
-   cd ../frontend
-   ```
-2. Install npm packages:
-   ```bash
-   npm install
-   ```
-3. Configure frontend environment variables in `.env` (like `VITE_API_URL` and `VITE_GOOGLE_REDIRECT_URI`).
-
-### 3. Database Migration (Optional - Supabase / PostgreSQL)
-By default, LeadSanity uses a local SQLite database file. To run with a persistent cloud database (e.g. Render backend with Supabase PostgreSQL storage):
-1. Create a free project on [Supabase](https://supabase.com/).
-2. Retrieve your PostgreSQL connection string from the database settings page.
-3. Update the `DATABASE_URL` parameter in your `backend/.env` file:
-   ```env
-   DATABASE_URL=postgresql://postgres.[project-id]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?sslmode=require
-   ```
-4. The database schemas will initialize automatically on application startup.
-
+Getting Started
+Prerequisites
+Make sure you have the following installed:
+Python 3.10 or above
+Node.js 18 or above
+npm 9 or above
+Git
 ---
+Backend Setup
+Navigate to the backend folder:
+```bash
+cd backend
+```
+Create a virtual environment:
+```bash
+python -m venv venv
+```
+Activate the virtual environment:
+```bash
+# Windows PowerShell
+venv\Scripts\activate.ps1
 
-## 🚀 Running the Application
+# macOS / Linux
+source venv/bin/activate
+```
+Install backend dependencies:
+```bash
+pip install -r requirements.txt
+```
+Create a `.env` file inside the `backend` folder:
+```env
+UPLOAD_DIR=./tmp/uploads
+OUTPUT_DIR=./tmp/outputs
+MAX_FILE_SIZE_MB=50
+TEMP_FILE_EXPIRY_MINUTES=60
+ALLOWED_ORIGINS=http://localhost:5173,https://leadsanity.vercel.app
 
-For convenience, you can launch both the frontend and backend concurrently from the frontend directory:
+DATABASE_URL=postgresql://postgres.[project-id]:[password]@aws-1-[region].pooler.supabase.com:6543/postgres?sslmode=require
+JWT_SECRET=your-supabase-jwt-secret-here
 
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-gmail-app-password
+SMTP_FROM_NAME=LeadSanity Team
+
+BREVO_API_KEY=your-brevo-api-key
+BREVO_SENDER=LeadSanity <your-verified-email>
+
+RESEND_API_KEY=your-resend-api-key
+RESEND_FROM=LeadSanity <onboarding@resend.dev>
+```
+Start the backend server:
+```bash
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+Backend will run at:
+```text
+http://localhost:8000
+```
+---
+Frontend Setup
+Navigate to the frontend folder:
 ```bash
 cd frontend
+```
+Install frontend dependencies:
+```bash
+npm install
+```
+Create a `.env` file inside the `frontend` folder:
+```env
+VITE_API_BASE_URL=http://localhost:8000
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+Start the frontend development server:
+```bash
 npm run dev
 ```
-
-*   **Frontend**: Runs on [http://localhost:5173](http://localhost:5173)
-*   **Backend**: Runs on [http://127.0.0.1:8000](http://127.0.0.1:8000)
-
+Frontend will run at:
+```text
+http://localhost:5173
+```
 ---
-
-## 🔒 Security & Backend Infrastructure Fixes
-
-### 1. Dynamic SMTP SSL Connections
-To eliminate SMTP mail server timeouts, standard mail dispatching automatically detects secure SSL ports (e.g. port `465`) and channels requests through Python's `smtplib.SMTP_SSL` dynamically, falling back to TLS start-channels on other ports (e.g. port `587`).
-
-### 2. Platform-Resilient Temp Storage
-Vercel serverless functions restrict file writing to the absolute `/tmp` directory. The upload, cleaning, and download route modules utilize an automated path translation utility that dynamically maps relative `./tmp/` storage targets in `.env` configurations to `/tmp/` space on Unix servers while leaving Windows environments untouched.
-
-### 3. Sandbox Fallback Mode
-During development, if Resend API configurations or OAuth keys are omitted from your `.env`, LeadSanity runs in **Sandbox Fallback Mode**:
-*   The generated 6-digit OTP codes are logged directly to the backend terminal window.
-*   Google Login will use a simulated modal selector allowing custom name/email input for offline testing of sign-in and sign-up state flows.
-
+How It Works
+1. Upload Lead File
+Upload a CSV or Excel file exported from ZoomInfo, Apollo.io, LinkedIn Sales Navigator, or other data sources.
+2. Auto-Map Fields
+LeadSanity detects common lead fields such as name, email, phone number, company, LinkedIn URL, job title, and website.
+3. Configure Cleaning Rules
+Choose the cleaning options you want to apply, including email validation, phone formatting, LinkedIn cleanup, website normalization, and deduplication.
+4. Review Data Quality
+View clean records, invalid records, duplicates, and records that need manual review.
+5. Export Clean Data
+Download the final clean lead file in CSV or Excel format.
 ---
-
-## 📄 License
-This project is licensed under the MIT License.
+Core Cleaning Capabilities
+Email Cleaning
+Removes extra spaces
+Converts email addresses to lowercase
+Validates basic email format
+Flags malformed email addresses
+Phone Cleaning
+Removes special characters
+Handles extensions
+Separates country code and local number where possible
+Creates cleaner phone output for CRM imports
+LinkedIn URL Cleaning
+Removes tracking parameters
+Removes trailing slashes
+Standardizes profile URLs
+Website Cleaning
+Removes duplicate protocol values
+Removes unnecessary prefixes
+Adds secure `https://` format where required
+Standardizes domain output
+Deduplication
+Detects repeated leads
+Removes exact duplicate rows
+Separates duplicate records for review
+---
+Authentication Flow
+LeadSanity supports two authentication methods:
+OTP Login
+User enters email address
+Backend generates a 6-digit OTP
+OTP is sent through Gmail SMTP, Brevo, or Resend
+User enters OTP
+Backend validates the OTP and starts a secure session
+Google OAuth
+User selects Google login
+Google verifies the user account
+Backend checks whether the account exists
+User is redirected to the dashboard after successful authentication
+---
+Deployment Notes
+LeadSanity is designed for deployment on Vercel using a monorepo structure.
+The root `vercel.json` should route:
+Frontend requests to the Vite static build
+API requests under `/api/*` to the FastAPI backend
+Recommended production URL structure:
+```text
+Frontend: https://leadsanity.vercel.app
+Backend:  https://leadsanity.vercel.app/api
+```
+---
+Environment Variables Checklist
+Backend
+`DATABASE_URL`
+`JWT_SECRET`
+`UPLOAD_DIR`
+`OUTPUT_DIR`
+`MAX_FILE_SIZE_MB`
+`TEMP_FILE_EXPIRY_MINUTES`
+`ALLOWED_ORIGINS`
+`SMTP_HOST`
+`SMTP_PORT`
+`SMTP_USER`
+`SMTP_PASSWORD`
+`SMTP_FROM_NAME`
+`BREVO_API_KEY`
+`BREVO_SENDER`
+`RESEND_API_KEY`
+`RESEND_FROM`
+Frontend
+`VITE_API_BASE_URL`
+`VITE_SUPABASE_URL`
+`VITE_SUPABASE_ANON_KEY`
+---
+UI Improvement Added
+The original standalone square profile icon was replaced with a cleaner profile pill design:
+```text
+[ E ] Elango ˅
+```
+This makes the profile section feel intentional, improves navbar balance, and gives users a clear indication that account options are available through a dropdown.
+Recommended dropdown options:
+Profile
+Settings
+Dashboard
+Logout
+---
+Roadmap
+Advanced fuzzy duplicate detection
+Bulk email domain validation
+CRM export presets
+Saved cleaning templates
+Team-based usage tracking
+Activity logs
+More sample files for demo usage
+Data quality scoring by source
+AI-based column mapping suggestions
+---
+License
+This project is intended for internal business use. Add your preferred license before making the repository public.
+---
+Author
+Built by Elango V as a lead data hygiene automation solution for sales and marketing operations.
