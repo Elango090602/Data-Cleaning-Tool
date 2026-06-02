@@ -8,7 +8,12 @@ from app.models.response_models import UploadResponse
 
 router = APIRouter()
 
-UPLOAD_DIR = os.getenv("UPLOAD_DIR", "./tmp/uploads")
+def resolve_tmp_path(path_str: str) -> str:
+    if os.name != "nt" and path_str.startswith("./tmp"):
+        return path_str.replace("./tmp", "/tmp", 1)
+    return path_str
+
+UPLOAD_DIR = resolve_tmp_path(os.getenv("UPLOAD_DIR", "./tmp/uploads"))
 
 @router.post("", response_model=UploadResponse)
 async def upload_file(file: UploadFile = File(...)):

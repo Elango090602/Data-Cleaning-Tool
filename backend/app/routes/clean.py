@@ -11,8 +11,13 @@ from app.services.export_service import export_csv, generate_summary_report
 
 router = APIRouter()
 
-UPLOAD_DIR = os.getenv("UPLOAD_DIR", "./tmp/uploads")
-OUTPUT_DIR = os.getenv("OUTPUT_DIR", "./tmp/outputs")
+def resolve_tmp_path(path_str: str) -> str:
+    if os.name != "nt" and path_str.startswith("./tmp"):
+        return path_str.replace("./tmp", "/tmp", 1)
+    return path_str
+
+UPLOAD_DIR = resolve_tmp_path(os.getenv("UPLOAD_DIR", "./tmp/uploads"))
+OUTPUT_DIR = resolve_tmp_path(os.getenv("OUTPUT_DIR", "./tmp/outputs"))
 
 @router.post("", response_model=CleanResponse)
 async def clean_data(payload: CleanRequest):
