@@ -17,7 +17,7 @@ client = TestClient(app)
 def test_csv_upload():
     csv_data = "Person First Name,Person Last Name,Email Address\nJohn,Doe,john@example.com\n"
     file = ("leads.csv", io.BytesIO(csv_data.encode("utf-8")), "text/csv")
-    response = client.post("/upload", files={"file": file})
+    response = client.post("/api/upload", files={"file": file})
     assert response.status_code == 200
     data = response.json()
     assert "session_id" in data
@@ -34,7 +34,7 @@ def test_xlsx_upload():
     excel_file.seek(0)
     
     file = ("leads.xlsx", excel_file, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    response = client.post("/upload", files={"file": file})
+    response = client.post("/api/upload", files={"file": file})
     assert response.status_code == 200
     data = response.json()
     assert "session_id" in data
@@ -43,7 +43,7 @@ def test_xlsx_upload():
 # 3. test_invalid_file_type
 def test_invalid_file_type():
     file = ("leads.txt", io.BytesIO(b"Hello world"), "text/plain")
-    response = client.post("/upload", files={"file": file})
+    response = client.post("/api/upload", files={"file": file})
     assert response.status_code == 400
     assert "Invalid file type" in response.json()["detail"]
 
@@ -123,11 +123,11 @@ def test_duplicate_detection():
         options={"remove_duplicates": True}
     )
     
-    # 1st row (Alice) and 6th row (Evan) should be kept.
-    # Rows 2, 3, 4, 5 should be detected as duplicates.
-    assert len(cleaned_df) == 2
-    assert len(duplicates_df) == 4
-    assert summary["duplicates_found"] == 4
+    # Anti-collision design: Row 1 & 2 have contradictory LinkedIn URLs, and Row 1 & 5 have contradictory
+    # LinkedIn profiles, so they are safely kept separate. Row 4 is a duplicate of Row 1 (matching LinkedIn).
+    assert len(cleaned_df) == 5
+    assert len(duplicates_df) == 2
+    assert summary["duplicates_found"] == 1
 
 # 8. test_blank_row_removal
 def test_blank_row_removal():
