@@ -1,12 +1,25 @@
 import React, { useState } from "react";
 
-export default function QuarantineInspector({ rows, columnConfigs, onPromoteLead, source = "invalid" }) {
+export default function QuarantineInspector({ rows, columnConfigs, onPromoteLead, onBulkResolve, source = "invalid" }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [editingIndex, setEditingIndex] = useState(null);
   const [editFormData, setEditFormData] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [successIndex, setSuccessIndex] = useState(null);
+  const [isBulkResolving, setIsBulkResolving] = useState(false);
+
+  const handleBulkResolveClick = async () => {
+    if (!window.confirm(`Are you sure you want to bulk-resolve all ${rows.length} quarantined records? This will move them to the clean list with fallback values for missing name/company fields so they can be exported.`)) {
+      return;
+    }
+    setIsBulkResolving(true);
+    const result = await onBulkResolve();
+    if (!result.success) {
+      alert(result.error || "Failed to bulk resolve records.");
+    }
+    setIsBulkResolving(false);
+  };
 
   // Dynamic values based on source
   const isQuarantine = source === "invalid";
@@ -118,18 +131,42 @@ export default function QuarantineInspector({ rows, columnConfigs, onPromoteLead
           </p>
         </div>
         
-        {/* Search Input */}
-        <div className="relative w-full sm:w-60">
-          <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-secondary text-[18px]">
-            search
-          </span>
-          <input
-            type="text"
-            placeholder={searchPlaceholder}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-xl pr-md py-[5px] rounded-lg border border-outline-variant bg-surface text-[12px] placeholder:text-secondary focus:outline-none focus:border-primary"
-          />
+        {/* Actions & Search */}
+        <div className="flex flex-col sm:flex-row items-center gap-sm w-full sm:w-auto">
+          {/* Bulk Resolve Button */}
+          {isQuarantine && onBulkResolve && (
+            <button
+              onClick={handleBulkResolveClick}
+              disabled={isBulkResolving}
+              className="w-full sm:w-auto px-md py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all text-[12px] font-bold flex items-center justify-center gap-xs disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+            >
+              {isBulkResolving ? (
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin shrink-0" />
+                  Resolving...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[16px]">done_all</span>
+                  Bulk Resolve ({rows.length})
+                </>
+              )}
+            </button>
+          )}
+
+          {/* Search Input */}
+          <div className="relative w-full sm:w-60">
+            <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-secondary text-[18px]">
+              search
+            </span>
+            <input
+              type="text"
+              placeholder={searchPlaceholder}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-xl pr-md py-[5px] rounded-lg border border-outline-variant bg-surface text-[12px] placeholder:text-secondary focus:outline-none focus:border-primary"
+            />
+          </div>
         </div>
       </div>
 

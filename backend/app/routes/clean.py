@@ -408,3 +408,147 @@ async def promote_lead(payload: PromoteRequest):
             outliers=f"{session_id}-outliers"
         )
     )
+@router.post("/bulk-resolve", response_model=CleanResponse)
+async def bulk_resolve(payload: CleanRequest):
+    """
+    Bulk resolves all quarantined leads (invalid list) by moving them to the cleaned list.
+    Fills in safe fallback values for missing name or company fields, updates grades to Grade C,
+    and returns updated previews + summary metrics.
+    """
+    session_id = payload.session_id
+    configs_list = [c.model_dump() for c in payload.column_configs]
+    cleaning_options_dict = payload.cleaning_options.model_dump()
+    
+    cleaned_path = os.path.join(OUTPUT_DIR, f"{session_id}-cleaned.csv")
+    invalid_path = os.path.join(OUTPUT_DIR, f"{session_id}-invalid.csv")
+    duplicates_path = os.path.join(OUTPUT_DIR, f"{session_id}-duplicates.csv")
+    outliers_path = os.path.join(OUTPUT_DIR, f"{session_id}-outliers.csv")
+    summary_path = os.path.join(OUTPUT_DIR, f"{session_id}-summary.json")
+    
+    if not os.path.exists(cleaned_path) or not os.path.exists(invalid_path) or not os.path.exists(summary_path):
+        raise HTTPException(status_code=404, detail="Session files not found or expired.")
+        
+    cleaned_df = pd.read_csv(cleaned_path)
+    invalid_df = pd.read_csv(invalid_path)
+    outliers_df = pd.read_csv(outliers_path) if os.path.exists(outliers_path) else pd.DataFrame()
+    
+    from app.services.cleaning_service import is_blank_value
+    
+    first_name_col = None
+    last_name_col = None
+    full_name_col = None
+    company_col = None
+    
+    for config in configs_list:
+        clean_type = config.get("clean_type")
+        out_name = config.get("output_name")
+        if clean_type == "First Name":
+            first_name_col = out_name
+        elif clean_type == "Last Name":
+            last_name_col = out_name
+        elif clean_type == "Full Name":
+            full_name_col = out_name
+        elif clean_type == "Company Name":
+            company_col = out_name
+            
+    new_rows = []
+    for _, row in invalid_df.iterrows():
+        row_dict = row.to_dict()
+        
+        # Resolve NaN to empty string
+        for k, v in row_dict.items():
+            if pd.isna(v):
+                row_dict[k] = ""
+                
+        if first_name_col and is_blank_value(row_dict.get(first_name_col)):
+            row_dict[first_name_col] = "Unknown"
+        if last_name_col and is_blank_value(row_dict.get(last_name_col)):
+            row_dict[last_name_col] = "Contact"
+        if full_name_col and is_blank_value(row_dict.get(full_name_col)):
+            row_dict[full_name_col] = "Unknown Contact"
+        if company_col and is_blank_value(row_dict.get(company_col)):
+            row_dict[company_col] = "Unknown Company"
+            
+        row_dict["Data Quality Status"] = "Needs Review"
+        row_dict["Lead Grade"] = "Grade C"
+        row_dict["Cleaning Remarks"] = "Bulk Resolved from Quarantine"
+        new_rows.append(row_dict)
+        
+    if new_rows:
+        new_rows_df = pd.DataFrame(new_rows)
+        cleaned_df = pd.concat([cleaned_df, new_rows_df], ignore_index=True)
+        
+    # Empty the invalid_df (but keep the structure/columns)
+    invalid_df = pd.DataFrame(columns=invalid_df.columns)
+    
+    # Save files back to disk
+    export_csv(cleaned_df, cleaned_path)
+    export_csv(invalid_df, invalid_path)
+    
+    # Load and update metrics in summary
+    with open(summary_path, "r") as f:
+        summary_metrics = json.load(f)
+        
+    # Recalculate summary metrics dynamically for flawless accuracy!
+    summary_metrics["valid_records"] = int(len(cleaned_df[cleaned_df["Data Quality Status"] == "Valid"]))
+    summary_metrics["needs_review"] = int(len(cleaned_df[cleaned_df["Data Quality Status"] == "Needs Review"]))
+    summary_metrics["invalid_records"] = len(invalid_df)
+    summary_metrics["outliers_found"] = len(outliers_df)
+    summary_metrics["total_after_cleaning"] = len(cleaned_df)
+    
+    # Recount invalid email/phone counters
+    invalid_emails_count = 0
+    invalid_phones_count = 0
+    
+    for _, r in invalid_df.iterrows():
+        rem = str(r.get("Cleaning Remarks", "")).lower()
+        if "email" in rem:
+            invalid_emails_count += 1
+        if "phone" in rem:
+            invalid_phones_count += 1
+            
+    for _, r in cleaned_df.iterrows():
+        rem = str(r.get("Cleaning Remarks", "")).lower()
+        if "email" in rem:
+            invalid_emails_count += 1
+        if "phone" in rem:
+            invalid_phones_count += 1
+            
+    summary_metrics["invalid_emails"] = invalid_emails_count
+    summary_metrics["invalid_phones"] = invalid_phones_count
+    
+    with open(summary_path, "w") as f:
+        json.dump(summary_metrics, f)
+        
+    # Generate updated previews
+    def make_preview(df_sub):
+        df_copy = df_sub.copy()
+        df_copy["original_df_index"] = df_copy.index
+        return clean_nans_and_numpy(df_copy.to_dict(orient="records"))
+        
+    cleaned_preview = make_preview(cleaned_df.head(20))
+    invalid_preview = make_preview(invalid_df)
+    outliers_preview = make_preview(outliers_df)
+    
+    # Load duplicates if file exists
+    duplicates_df = pd.read_csv(duplicates_path) if os.path.exists(duplicates_path) else pd.DataFrame()
+    duplicates_preview = make_preview(duplicates_df) if not duplicates_df.empty else []
+    
+    needs_review_df = cleaned_df[cleaned_df["Data Quality Status"] == "Needs Review"]
+    needs_review_preview = make_preview(needs_review_df)
+    
+    return CleanResponse(
+        cleaned_preview=cleaned_preview,
+        invalid_preview=invalid_preview,
+        needs_review_preview=needs_review_preview,
+        duplicates_preview=duplicates_preview,
+        outliers_preview=outliers_preview,
+        summary=CleaningSummaryMetrics(**summary_metrics),
+        download_ids=DownloadIds(
+            cleaned=f"{session_id}-cleaned",
+            invalid=f"{session_id}-invalid" if cleaning_options_dict.get("generate_invalid_file", True) else None,
+            duplicates=f"{session_id}-duplicates" if cleaning_options_dict.get("generate_duplicate_file", True) else None,
+            summary=f"{session_id}-summary",
+            outliers=f"{session_id}-outliers"
+        )
+    )

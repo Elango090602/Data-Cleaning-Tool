@@ -423,7 +423,7 @@ async def google_callback(payload: GoogleCallbackRequest, background_tasks: Back
             else:
                 # Existing unverified user: send new OTP
                 otp = "".join([str(secrets.randbelow(10)) for _ in range(6)])
-                expires_at = datetime.fromtimestamp(time.time() + 600) # 10 mins
+                expires_at = datetime.utcfromtimestamp(time.time() + 600) # 10 mins
                 execute_sql(cursor, """
                     INSERT INTO otp_verifications (email, otp_code, expires_at, is_used, created_at)
                     VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
@@ -450,7 +450,7 @@ async def google_callback(payload: GoogleCallbackRequest, background_tasks: Back
             conn.commit()
             
             otp = "".join([str(secrets.randbelow(10)) for _ in range(6)])
-            expires_at = datetime.fromtimestamp(time.time() + 600) # 10 mins
+            expires_at = datetime.utcfromtimestamp(time.time() + 600) # 10 mins
             execute_sql(cursor, """
                 INSERT INTO otp_verifications (email, otp_code, expires_at, is_used, created_at)
                 VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
@@ -505,7 +505,7 @@ async def google_callback(payload: GoogleCallbackRequest, background_tasks: Back
             else:
                 # Existing unverified user: Send a new OTP
                 otp = "".join([str(secrets.randbelow(10)) for _ in range(6)])
-                expires_at = datetime.fromtimestamp(time.time() + 600) # 10 mins
+                expires_at = datetime.utcfromtimestamp(time.time() + 600) # 10 mins
                 execute_sql(cursor, """
                     INSERT INTO otp_verifications (email, otp_code, expires_at, is_used, created_at)
                     VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
@@ -565,7 +565,7 @@ def google_login_simulated(payload: GoogleLoginRequest, background_tasks: Backgr
             else:
                 # Existing unverified user: Generate new OTP and send
                 otp = "123456" if is_mock_email(email) else "".join([str(secrets.randbelow(10)) for _ in range(6)])
-                expires_at = datetime.fromtimestamp(time.time() + 600)
+                expires_at = datetime.utcfromtimestamp(time.time() + 600)
                 execute_sql(cursor, """
                     INSERT INTO otp_verifications (email, otp_code, expires_at, is_used, created_at)
                     VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
@@ -590,7 +590,7 @@ def google_login_simulated(payload: GoogleLoginRequest, background_tasks: Backgr
             conn.commit()
             
             otp = "123456" if is_mock_email(email) else "".join([str(secrets.randbelow(10)) for _ in range(6)])
-            expires_at = datetime.fromtimestamp(time.time() + 600)
+            expires_at = datetime.utcfromtimestamp(time.time() + 600)
             execute_sql(cursor, """
                 INSERT INTO otp_verifications (email, otp_code, expires_at, is_used, created_at)
                 VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
@@ -643,7 +643,7 @@ def google_login_simulated(payload: GoogleLoginRequest, background_tasks: Backgr
             else:
                 # Existing unverified user on signin: send OTP
                 otp = "123456" if is_mock_email(email) else "".join([str(secrets.randbelow(10)) for _ in range(6)])
-                expires_at = datetime.fromtimestamp(time.time() + 600)
+                expires_at = datetime.utcfromtimestamp(time.time() + 600)
                 execute_sql(cursor, """
                     INSERT INTO otp_verifications (email, otp_code, expires_at, is_used, created_at)
                     VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
@@ -793,7 +793,7 @@ def resend_otp_secure(payload: ResendOtpSecureRequest, background_tasks: Backgro
             )
             
     otp = "123456" if is_mock_email(email) else "".join([str(secrets.randbelow(10)) for _ in range(6)])
-    expires_at = datetime.fromtimestamp(time.time() + 600) # 10 mins
+    expires_at = datetime.utcfromtimestamp(time.time() + 600) # 10 mins
     
     execute_sql(cursor, """
         INSERT INTO otp_verifications (email, otp_code, expires_at, is_used, created_at)

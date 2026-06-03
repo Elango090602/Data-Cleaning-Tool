@@ -9,7 +9,7 @@ import DataPreview from "../components/DataPreview";
 import QuarantineInspector from "../components/QuarantineInspector";
 import OutlierInspector from "../components/OutlierInspector";
 import UserProfileModal from "../components/UserProfileModal";
-import { cleanData, cleanupSession, promoteLead } from "../services/api";
+import { cleanData, cleanupSession, promoteLead, bulkResolve } from "../services/api";
 
 export default function App({ onBackToLanding, onLogout }) {
   const [step, setStep] = useState(1);
@@ -194,6 +194,30 @@ export default function App({ onBackToLanding, onLogout }) {
       };
       
       const response = await promoteLead(payload);
+      setCleanedPreview(response.cleaned_preview);
+      setInvalidPreview(response.invalid_preview || []);
+      setNeedsReviewPreview(response.needs_review_preview || []);
+      setDuplicatesPreview(response.duplicates_preview || []);
+      setOutliersPreview(response.outliers_preview || []);
+      setSummary(response.summary);
+      setDownloadIds(response.download_ids);
+      return { success: true };
+    } catch (err) {
+      console.error(err);
+      return { success: false, error: err.message };
+    }
+  };
+
+  // Bulk resolves all quarantined records
+  const handleBulkResolve = async () => {
+    try {
+      const payload = {
+        session_id: sessionId,
+        column_configs: columnConfigs,
+        cleaning_options: cleaningOptions
+      };
+      
+      const response = await bulkResolve(payload);
       setCleanedPreview(response.cleaned_preview);
       setInvalidPreview(response.invalid_preview || []);
       setNeedsReviewPreview(response.needs_review_preview || []);
@@ -736,6 +760,7 @@ export default function App({ onBackToLanding, onLogout }) {
                         rows={invalidPreview} 
                         columnConfigs={columnConfigs} 
                         onPromoteLead={handlePromoteLead} 
+                        onBulkResolve={handleBulkResolve}
                         source="invalid"
                       />
                     ) : activePreviewTab === "outliers" ? (

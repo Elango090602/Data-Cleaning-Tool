@@ -100,6 +100,26 @@ export async function promoteLead(payload) {
 }
 
 /**
+ * Bulk resolves all quarantined leads back to the clean list as Grade C.
+ */
+export async function bulkResolve(payload) {
+  const response = await fetch(`${BASE_URL}/clean/bulk-resolve`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.detail || "Failed to bulk resolve records.");
+  }
+
+  return response.json();
+}
+
+/**
  * Sends a 6-digit OTP to the user's email.
  */
 export async function sendOTP(email) {

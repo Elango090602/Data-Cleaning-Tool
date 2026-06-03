@@ -137,7 +137,7 @@ export default function DownloadButtons({ downloadIds, onReset, summary }) {
       <div className="mt-xl pt-lg border-t border-outline-variant/30 flex justify-center shrink-0">
         <button
           onClick={onReset}
-          className="px-xl py-sm rounded-xl border border-outline font-label-caps text-label-caps text-on-surface hover:bg-surface-container-low transition-all duration-150 active:scale-95 flex items-center gap-xs focus:outline-none"
+          className="px-xl py-sm rounded-xl bg-primary text-on-primary hover:bg-surface-tint shadow-md transition-all duration-150 active:scale-95 flex items-center gap-xs font-bold font-label-caps text-label-caps focus:outline-none"
         >
           <span className="material-symbols-outlined text-[18px]">restart_alt</span>
           Sanitize Another List
