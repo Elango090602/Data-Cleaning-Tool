@@ -20,17 +20,20 @@ class CleaningSummaryMetrics(BaseModel):
     invalid_emails: int
     invalid_phones: int
     processing_time_ms: int
+    outliers_found: int = 0
 
 class DownloadIds(BaseModel):
     cleaned: str
     invalid: Optional[str] = None
     duplicates: Optional[str] = None
     summary: Optional[str] = None
+    outliers: Optional[str] = None
 
 class CleanResponse(BaseModel):
     cleaned_preview: List[Dict[str, Any]]
     invalid_preview: List[Dict[str, Any]] = []
     needs_review_preview: List[Dict[str, Any]] = []
     duplicates_preview: List[Dict[str, Any]] = []
+    outliers_preview: List[Dict[str, Any]] = []
     summary: CleaningSummaryMetrics
     download_ids: DownloadIds

@@ -117,7 +117,7 @@ def test_duplicate_detection():
         {"original_name": "Company", "output_name": "Company Name", "clean_type": "Company Name", "included": True}
     ]
     
-    cleaned_df, invalid_df, duplicates_df, summary = process_cleaning_pipeline(
+    cleaned_df, invalid_df, duplicates_df, outliers_df, summary = process_cleaning_pipeline(
         df=df,
         column_configs=column_configs,
         options={"remove_duplicates": True}
@@ -144,7 +144,7 @@ def test_blank_row_removal():
         {"original_name": "Email", "output_name": "Email", "clean_type": "Email", "included": True},
         {"original_name": "Phone", "output_name": "Phone Number", "clean_type": "Phone Number", "included": True}
     ]
-    cleaned_df, _, _, summary = process_cleaning_pipeline(
+    cleaned_df, _, _, _, summary = process_cleaning_pipeline(
         df=df,
         column_configs=column_configs,
         options={"remove_blank_rows": True, "remove_duplicates": False}
@@ -210,7 +210,7 @@ def test_date_pipeline():
         {"original_name": "Hire Date", "output_name": "Hire Date", "clean_type": "Date (DD-MM-YYYY)", "included": True}
     ]
     
-    cleaned_df, _, _, _ = process_cleaning_pipeline(
+    cleaned_df, _, _, _, _ = process_cleaning_pipeline(
         df=df,
         column_configs=column_configs,
         options={"remove_duplicates": False}
@@ -231,4 +231,74 @@ def test_date_pipeline():
     assert cleaned_df.iloc[1]["Hire Date"] == ""
     assert "Invalid date format" in cleaned_df.iloc[1]["Cleaning Remarks"]
     assert cleaned_df.iloc[1]["Data Quality Status"] == "Needs Review"
+
+
+# 13. test_grading_and_outliers
+def test_grading_and_outliers():
+    # Setup messy records:
+    # Row 0: Grade A (complete and valid contact)
+    # Row 1: Grade B (valid contact, but missing Job Title)
+    # Row 2: Grade C (no direct contact, but has Name, Job Title, Company Name for manual linkedin search)
+    # Row 3: Quarantined (no contact AND missing Job Title / Company)
+    # Row 4-10: Dominant corporate roles
+    # Row 11: Outlier (Job Title is "Truck Driver", which is a low-level service role in a corporate list)
+    data = [
+        {"First Name": "Alice", "Last Name": "Smith", "Job Title": "Chief Executive Officer", "Company": "Acme Corp", "Email": "alice@acme.com"},
+        {"First Name": "Bob", "Last Name": "Jones", "Job Title": "", "Company": "TechStart", "Email": "bob@tech.com"},
+        {"First Name": "Charlie", "Last Name": "Brown", "Job Title": "Director of Operations", "Company": "Globalnet", "Email": ""},
+        {"First Name": "Diana", "Last Name": "Prince", "Job Title": "", "Company": "", "Email": ""},
+        
+        {"First Name": "Edward", "Last Name": "Elric", "Job Title": "Vice President", "Company": "State Corp", "Email": "ed@state.com"},
+        {"First Name": "Fiona", "Last Name": "Gallagher", "Job Title": "Manager", "Company": "Patty's", "Email": "fiona@patty.com"},
+        {"First Name": "George", "Last Name": "Windsor", "Job Title": "Managing Director", "Company": "Royal Trust", "Email": "george@royal.com"},
+        {"First Name": "Hassan", "Last Name": "Ali", "Job Title": "President", "Company": "Emirates", "Email": "hassan@emirates.ae"},
+        {"First Name": "Ian", "Last Name": "Malcolm", "Job Title": "VP Engineering", "Company": "InGen", "Email": "ian@ingen.org"},
+        {"First Name": "Julia", "Last Name": "Roberts", "Job Title": "COO", "Company": "Hollywood", "Email": "julia@hollywood.com"},
+        
+        {"First Name": "Kevin", "Last Name": "Bacon", "Job Title": "Truck Driver", "Company": "Six Degrees", "Email": "kevin@six.com"}
+    ]
+    df = pd.DataFrame(data)
+    column_configs = [
+        {"original_name": "First Name", "output_name": "First Name", "clean_type": "First Name", "included": True},
+        {"original_name": "Last Name", "output_name": "Last Name", "clean_type": "Last Name", "included": True},
+        {"original_name": "Job Title", "output_name": "Job Title", "clean_type": "Job Title", "included": True},
+        {"original_name": "Company", "output_name": "Company Name", "clean_type": "Company Name", "included": True},
+        {"original_name": "Email", "output_name": "Email", "clean_type": "Email", "included": True}
+    ]
+    
+    cleaned_df, invalid_df, duplicates_df, outliers_df, summary = process_cleaning_pipeline(
+        df=df,
+        column_configs=column_configs,
+        options={"remove_duplicates": False, "validate_emails": True}
+    )
+    
+    # Combined final clean list has 9 elements (Row 0, 1, 2, 4, 5, 6, 7, 8, 9 except Row 3 (Quarantined) and Row 10 (Outlier))
+    # Row 3 lacks contact and core details (no Company/Job) -> Quarantined (invalid_df)
+    assert len(invalid_df) == 1
+    # Row 10 is classified as an outlier ("Truck Driver" in executive list)
+    assert len(outliers_df) == 1
+    assert outliers_df.iloc[0]["Job Title"] == "Truck Driver"
+    
+    # We have 9 clean records (including Grade C manual work and Grade B warnings)
+    assert len(cleaned_df) == 9
+    
+    # Check Grades
+    # Row 0: Grade A
+    row_0 = cleaned_df[cleaned_df["First Name"] == "Alice"].iloc[0]
+    assert row_0["Lead Grade"] == "Grade A"
+    assert row_0["Data Quality Status"] == "Valid"
+    
+    # Row 1: Grade B (missing Job Title)
+    row_1 = cleaned_df[cleaned_df["First Name"] == "Bob"].iloc[0]
+    assert row_1["Lead Grade"] == "Grade B"
+    assert row_1["Data Quality Status"] == "Valid"
+    
+    # Row 2: Grade C (no email, but has Job Title + Company)
+    row_2 = cleaned_df[cleaned_df["First Name"] == "Charlie"].iloc[0]
+    assert row_2["Lead Grade"] == "Grade C"
+    assert row_2["Data Quality Status"] == "Needs Review"
+    
+    # Row 3 in invalid_df should be Quarantined
+    assert invalid_df.iloc[0]["Lead Grade"] == "Quarantined"
+    assert invalid_df.iloc[0]["Data Quality Status"] == "Invalid"
 

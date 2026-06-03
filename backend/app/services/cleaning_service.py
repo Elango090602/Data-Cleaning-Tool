@@ -151,14 +151,68 @@ def clean_value_by_field(field_name: str, raw_val: Any) -> Tuple[str, bool, str]
     # Default fallback for other text columns
     return val_str, True, ""
 
+def detect_job_title_outliers(df: pd.DataFrame, job_title_col: str) -> List[int]:
+    """
+    Detects job title outliers by identifying rare, support, or manual labor titles
+    in a dataset where the majority of titles represent corporate or high-level positions.
+    """
+    outlier_indices = []
+    if job_title_col not in df.columns or len(df) < 5:
+        return outlier_indices
+        
+    high_level_count = 0
+    low_level_rows = []
+    
+    # Comprehensive keywords for typical corporate, executive, or management roles
+    HIGH_LEVEL_KEYWORDS = [
+        "chief", "director", "manager", "vp", "president", "founder", "head", "officer", 
+        "executive", "supervisor", "lead", "coo", "ceo", "cfo", "cto", "cio", "cmo", 
+        "partner", "owner"
+    ]
+    
+    # Keywords for support, manual labor, or service roles that would be outliers 
+    # if the list is predominantly executive/corporate
+    LOW_LEVEL_KEYWORDS = [
+        "driver", "janitor", "cleaner", "sweeper", "clerk", "receptionist", "security", 
+        "laborer", "helper", "intern", "trainee", "student", "assistant", "operator", 
+        "worker", "machinist", "assembler", "chauffeur", "delivery", "gardener", 
+        "plumber", "electrician", "technician", "mechanic", "maintenance", "painter", 
+        "welder", "courier", "cashier"
+    ]
+    
+    for idx, row in df.iterrows():
+        title = str(row[job_title_col]).lower()
+        
+        has_high = any(kw in title for kw in HIGH_LEVEL_KEYWORDS)
+        if has_high:
+            high_level_count += 1
+            
+        has_low = any(kw in title for kw in LOW_LEVEL_KEYWORDS) and not has_high
+        if has_low:
+            low_level_rows.append((idx, title))
+            
+    total = len(df)
+    high_ratio = high_level_count / total
+    low_ratio = len(low_level_rows) / total
+    
+    # If at least 30% of the dataset is corporate/high-level,
+    # and the low-level roles represent less than 15% of the list,
+    # we classify those low-level rows as outliers.
+    if high_ratio > 0.3 and low_ratio < 0.15:
+        for idx, title in low_level_rows:
+            outlier_indices.append(idx)
+            
+    return outlier_indices
+
+
 def process_cleaning_pipeline(
     df: pd.DataFrame,
     column_configs: List[Dict[str, Any]],
     options: Dict[str, Any]
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any]]:
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, Any]]:
     """
     Processes the full cleaning pipeline based on custom column configurations.
-    Returns: (cleaned_df, invalid_df, duplicates_df, summary_metrics)
+    Returns: (cleaned_df, invalid_df, duplicates_df, outliers_df, summary_metrics)
     """
     start_time = time.time()
     total_uploaded = len(df)
@@ -185,10 +239,12 @@ def process_cleaning_pipeline(
         standard_columns_to_export.append("Data Quality Status")
     if "Cleaning Remarks" not in standard_columns_to_export:
         standard_columns_to_export.append("Cleaning Remarks")
+    if "Lead Grade" not in standard_columns_to_export:
+        standard_columns_to_export.append("Lead Grade")
         
     if not included_configs:
         empty_df = pd.DataFrame(columns=standard_columns_to_export)
-        return empty_df, empty_df, empty_df, {
+        return empty_df, empty_df, empty_df, empty_df, {
             "total_uploaded": total_uploaded,
             "total_after_cleaning": 0,
             "valid_records": 0,
@@ -198,6 +254,7 @@ def process_cleaning_pipeline(
             "duplicates_removed": 0,
             "invalid_emails": 0,
             "invalid_phones": 0,
+            "outliers_found": 0,
             "processing_time_ms": int((time.time() - start_time) * 1000)
         }
 
@@ -270,7 +327,6 @@ def process_cleaning_pipeline(
                         warning = "" if is_val else f"Invalid phone format: '{raw_val}'"
                         if options.get("validate_phones", True):
                             if not is_val:
-                                is_row_invalid = True
                                 row_remarks.append(warning)
                                 invalid_phones_count += 1
                     else:
@@ -288,7 +344,6 @@ def process_cleaning_pipeline(
                         
                         warning = f"Invalid date format: '{raw_val}'"
                         if not is_val:
-                            is_row_needs_review = True
                             row_remarks.append(warning)
                     else:
                         row_data[out_name] = ""
@@ -304,26 +359,22 @@ def process_cleaning_pipeline(
                         # Email validation checks
                         if clean_type == "Email" and options.get("validate_emails", True):
                             if not is_val:
-                                is_row_invalid = True
                                 row_remarks.append(warning)
                                 invalid_emails_count += 1
                                 
                         # LinkedIn validation checks
                         elif clean_type == "LinkedIn Profile URL" and options.get("clean_linkedin", True):
                             if not is_val:
-                                is_row_invalid = True
                                 row_remarks.append(warning)
                                 
                         # Website validation checks
                         elif clean_type == "Company Website" and options.get("clean_websites", True):
                             if not is_val:
-                                is_row_needs_review = True
                                 row_remarks.append(warning)
                                 
                         # Date validation checks
                         elif clean_type in ["Date (DD-MM-YYYY)", "Date (Split Date & Time)"]:
                             if not is_val:
-                                is_row_needs_review = True
                                 row_remarks.append(warning)
                     else:
                         # Blank non-phone field: just map default empty string
@@ -348,10 +399,9 @@ def process_cleaning_pipeline(
         # Mandatory missing checks (First Name and Last Name)
         is_first_missing = not clean_type_vals.get("First Name")
         is_last_missing = not clean_type_vals.get("Last Name")
+        has_fullname = bool(clean_type_vals.get("Full Name"))
         
-        # If either is missing, flag it as Needs Review
         if is_first_missing or is_last_missing:
-            is_row_needs_review = True
             missing_cols = []
             if is_first_missing:
                 missing_cols.append("First Name is blank")
@@ -359,34 +409,65 @@ def process_cleaning_pipeline(
                 missing_cols.append("Last Name is blank")
             row_remarks.extend(missing_cols)
 
-        # Minimum Contact Rule implementation:
-        # A lead is kept and valid if they have a Phone, Email, LinkedIn, OR both Company & LinkedIn
-        has_phone = bool(clean_type_vals.get("Phone Number") or clean_type_vals.get("Mobile Number"))
-        has_email = bool(clean_type_vals.get("Email"))
-        has_linkedin = bool(clean_type_vals.get("LinkedIn Profile URL"))
-        has_company = bool(clean_type_vals.get("Company Name"))
+        # Contact and Core Identity availability checks
+        email_present = "Email" in clean_type_vals
+        email_error = any("email" in rem.lower() for rem in row_remarks)
         
-        has_min_contact = (
-            has_phone or 
-            has_email or 
-            has_linkedin or 
-            (has_company and has_linkedin)
+        phone_present = "Phone Number" in clean_type_vals or "Mobile Number" in clean_type_vals
+        phone_error = any("phone" in rem.lower() for rem in row_remarks)
+        
+        linkedin_present = "LinkedIn Profile URL" in clean_type_vals
+        linkedin_error = any("linkedin" in rem.lower() for rem in row_remarks)
+        
+        email_valid = email_present and not email_error
+        phone_valid = phone_present and not phone_error
+        linkedin_valid = linkedin_present and not linkedin_error
+        
+        has_any_valid_contact = email_valid or phone_valid or linkedin_valid
+        
+        has_name = (not is_first_missing and not is_last_missing) or has_fullname
+        has_job_title = bool(clean_type_vals.get("Job Title"))
+        has_company_name = bool(clean_type_vals.get("Company Name"))
+        has_full_identity = has_name and has_job_title and has_company_name
+        
+        is_useless = (not has_any_valid_contact) and (not has_full_identity)
+        
+        has_warnings_or_errors = (
+            email_error or phone_error or linkedin_error or
+            is_first_missing or is_last_missing or
+            any("website" in rem.lower() for rem in row_remarks) or
+            any("date" in rem.lower() for rem in row_remarks)
         )
         
-        if not has_min_contact:
+        if is_useless:
             is_row_invalid = True
-            row_remarks.append("Missing all contact methods (no Phone, Email, or LinkedIn)")
-            
+            is_row_needs_review = False
+            grade = "Quarantined"
+            row_remarks.append("Missing all contact methods and core identity fields")
+        else:
+            is_row_invalid = False
+            if has_any_valid_contact:
+                if has_full_identity and not has_warnings_or_errors:
+                    grade = "Grade A"
+                    is_row_needs_review = False
+                else:
+                    grade = "Grade B"
+                    is_row_needs_review = has_warnings_or_errors or is_first_missing or is_last_missing
+            else:
+                # No contact info but has core identity: Grade C (Needs manual work)
+                grade = "Grade C"
+                is_row_needs_review = True
+                row_remarks.append("No direct contact info (needs manual LinkedIn search)")
+                
+        row_data["Lead Grade"] = grade
+
         # Determine Data Quality Status
         if is_row_invalid:
             status = "Invalid"
-            invalid_records_count += 1
         elif is_row_needs_review:
             status = "Needs Review"
-            needs_review_count += 1
         else:
             status = "Valid"
-            valid_records_count += 1
             
         row_data["Data Quality Status"] = status
         row_data["Cleaning Remarks"] = "; ".join(row_remarks) if row_remarks else "Record is clean"
@@ -450,6 +531,7 @@ def process_cleaning_pipeline(
                 # Append duplicate row context
                 row_data["Data Quality Status"] = "Duplicate"
                 row_data["Cleaning Remarks"] = f"{'; '.join(dupe_reasons)} (Group #{duplicates_found})"
+                row_data["Lead Grade"] = "Duplicate"
                 duplicate_rows.append(row_data)
                 continue
             else:
@@ -470,10 +552,42 @@ def process_cleaning_pipeline(
         else:
             cleaned_rows.append(row_data)
             
+    # 5. Outlier Detection
+    job_title_col = None
+    for config in included_configs:
+        if config.get("clean_type") == "Job Title":
+            job_title_col = config["output_name"]
+            break
+            
+    outlier_rows = []
+    final_cleaned_rows = []
+    
+    if job_title_col and cleaned_rows:
+        # Create a temp df to find outliers
+        temp_df = pd.DataFrame(cleaned_rows)
+        outlier_indices = detect_job_title_outliers(temp_df, job_title_col)
+        
+        # Separate outliers
+        for idx, row in enumerate(cleaned_rows):
+            if idx in outlier_indices:
+                row["Cleaning Remarks"] = f"Flagged as Outlier: Job title '{row.get(job_title_col)}' is inconsistent with target seniority"
+                outlier_rows.append(row)
+            else:
+                final_cleaned_rows.append(row)
+    else:
+        final_cleaned_rows = cleaned_rows
+        
+    # Re-calculate metrics based on final partitioned lists
+    valid_records_count = sum(1 for r in final_cleaned_rows if r.get("Data Quality Status") == "Valid")
+    needs_review_count = sum(1 for r in final_cleaned_rows if r.get("Data Quality Status") == "Needs Review")
+    invalid_records_count = len(invalid_rows)
+    outliers_found = len(outlier_rows)
+            
     # Compile DataFrames
-    cleaned_df = pd.DataFrame(cleaned_rows, columns=standard_columns_to_export) if cleaned_rows else pd.DataFrame(columns=standard_columns_to_export)
+    cleaned_df = pd.DataFrame(final_cleaned_rows, columns=standard_columns_to_export) if final_cleaned_rows else pd.DataFrame(columns=standard_columns_to_export)
     invalid_df = pd.DataFrame(invalid_rows, columns=standard_columns_to_export) if invalid_rows else pd.DataFrame(columns=standard_columns_to_export)
     duplicates_df = pd.DataFrame(duplicate_rows, columns=standard_columns_to_export) if duplicate_rows else pd.DataFrame(columns=standard_columns_to_export)
+    outliers_df = pd.DataFrame(outlier_rows, columns=standard_columns_to_export) if outlier_rows else pd.DataFrame(columns=standard_columns_to_export)
     
     processing_time_ms = int((time.time() - start_time) * 1000)
     
@@ -482,12 +596,13 @@ def process_cleaning_pipeline(
         "total_after_cleaning": len(cleaned_df),
         "valid_records": valid_records_count,
         "needs_review": needs_review_count,
-        "invalid_records": len(invalid_df),
+        "invalid_records": invalid_records_count,
         "duplicates_found": duplicates_found,
         "duplicates_removed": duplicates_found,
         "invalid_emails": invalid_emails_count,
         "invalid_phones": invalid_phones_count,
+        "outliers_found": outliers_found,
         "processing_time_ms": processing_time_ms
     }
     
-    return cleaned_df, invalid_df, duplicates_df, summary_metrics
+    return cleaned_df, invalid_df, duplicates_df, outliers_df, summary_metrics

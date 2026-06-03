@@ -243,10 +243,20 @@ field_mapping = {
     "Revenue": "Annual Revenue"
 }
 
-cleaned_df, invalid_df, duplicates_df, summary = process_cleaning_pipeline(
+# Convert field_mapping to column_configs list of dicts
+configs_list = [
+    {
+        "original_name": orig,
+        "output_name": orig,
+        "clean_type": standard,
+        "included": True
+    }
+    for standard, orig in field_mapping.items()
+]
+
+cleaned_df, invalid_df, duplicates_df, outliers_df, summary = process_cleaning_pipeline(
     df=df_messy,
-    field_mapping=field_mapping,
-    selected_output_fields=list(field_mapping.keys()),
+    column_configs=configs_list,
     options={
         "validate_emails": True,
         "validate_phones": True,

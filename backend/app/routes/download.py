@@ -51,6 +51,8 @@ async def download_file(file_id: str, format: str = Query("csv", pattern="^(csv|
         base_name = "invalid_leads"
     elif "duplicates" in file_id:
         base_name = "duplicate_leads"
+    elif "outliers" in file_id:
+        base_name = "outlier_leads"
         
     download_name = f"{base_name}.{format}"
     

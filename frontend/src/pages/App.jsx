@@ -7,6 +7,7 @@ import CleaningSummary from "../components/CleaningSummary";
 import DownloadButtons from "../components/DownloadButtons";
 import DataPreview from "../components/DataPreview";
 import QuarantineInspector from "../components/QuarantineInspector";
+import OutlierInspector from "../components/OutlierInspector";
 import UserProfileModal from "../components/UserProfileModal";
 import { cleanData, cleanupSession, promoteLead } from "../services/api";
 
@@ -37,6 +38,7 @@ export default function App({ onBackToLanding, onLogout }) {
   const [invalidPreview, setInvalidPreview] = useState([]);
   const [needsReviewPreview, setNeedsReviewPreview] = useState([]);
   const [duplicatesPreview, setDuplicatesPreview] = useState([]);
+  const [outliersPreview, setOutliersPreview] = useState([]);
   const [activePreviewTab, setActivePreviewTab] = useState("valid");
   const [summary, setSummary] = useState({});
   const [downloadIds, setDownloadIds] = useState({});
@@ -166,6 +168,7 @@ export default function App({ onBackToLanding, onLogout }) {
       setInvalidPreview(response.invalid_preview || []);
       setNeedsReviewPreview(response.needs_review_preview || []);
       setDuplicatesPreview(response.duplicates_preview || []);
+      setOutliersPreview(response.outliers_preview || []);
       setSummary(response.summary);
       setDownloadIds(response.download_ids);
       setActivePreviewTab("valid"); // Reset to Valid tab on start
@@ -195,6 +198,7 @@ export default function App({ onBackToLanding, onLogout }) {
       setInvalidPreview(response.invalid_preview || []);
       setNeedsReviewPreview(response.needs_review_preview || []);
       setDuplicatesPreview(response.duplicates_preview || []);
+      setOutliersPreview(response.outliers_preview || []);
       setSummary(response.summary);
       setDownloadIds(response.download_ids);
       return { success: true };
@@ -224,6 +228,7 @@ export default function App({ onBackToLanding, onLogout }) {
     setInvalidPreview([]);
     setNeedsReviewPreview([]);
     setDuplicatesPreview([]);
+    setOutliersPreview([]);
     setActivePreviewTab("valid");
     setSummary({});
     setDownloadIds({});
@@ -688,6 +693,17 @@ export default function App({ onBackToLanding, onLogout }) {
                       Quarantined ({summary.invalid_records || 0})
                     </button>
                     <button
+                      onClick={() => setActivePreviewTab("outliers")}
+                      className={`pb-sm px-xs font-label-caps text-label-caps text-xs transition-all relative font-bold flex items-center gap-[3px] shrink-0 ${
+                        activePreviewTab === "outliers"
+                          ? "text-rose-700 border-b-2 border-rose-600"
+                          : "text-secondary hover:text-on-background"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[18px]">troubleshoot</span>
+                      Outliers ({summary.outliers_found || 0})
+                    </button>
+                    <button
                       onClick={() => setActivePreviewTab("duplicates")}
                       className={`pb-sm px-xs font-label-caps text-label-caps text-xs transition-all relative font-bold flex items-center gap-[3px] shrink-0 ${
                         activePreviewTab === "duplicates"
@@ -721,6 +737,12 @@ export default function App({ onBackToLanding, onLogout }) {
                         columnConfigs={columnConfigs} 
                         onPromoteLead={handlePromoteLead} 
                         source="invalid"
+                      />
+                    ) : activePreviewTab === "outliers" ? (
+                      <OutlierInspector
+                        rows={outliersPreview}
+                        columnConfigs={columnConfigs}
+                        onPromoteLead={handlePromoteLead}
                       />
                     ) : (
                       <DataPreview 

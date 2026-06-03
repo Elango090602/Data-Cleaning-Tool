@@ -40,7 +40,7 @@ async def clean_data(payload: CleanRequest):
     # 3. Trigger cleaning pipeline
     cleaning_options_dict = payload.cleaning_options.model_dump()
     configs_list = [c.model_dump() for c in payload.column_configs]
-    cleaned_df, invalid_df, duplicates_df, summary_metrics = process_cleaning_pipeline(
+    cleaned_df, invalid_df, duplicates_df, outliers_df, summary_metrics = process_cleaning_pipeline(
         df=df,
         column_configs=configs_list,
         options=cleaning_options_dict
@@ -52,6 +52,7 @@ async def clean_data(payload: CleanRequest):
     cleaned_id = f"{session_id}-cleaned"
     invalid_id = f"{session_id}-invalid"
     duplicates_id = f"{session_id}-duplicates"
+    outliers_id = f"{session_id}-outliers"
     summary_id = f"{session_id}-summary"
     
     # Export cleaned leads
@@ -62,6 +63,9 @@ async def clean_data(payload: CleanRequest):
     
     # Export duplicate leads
     export_csv(duplicates_df, os.path.join(OUTPUT_DIR, f"{duplicates_id}.csv"))
+    
+    # Export outlier leads
+    export_csv(outliers_df, os.path.join(OUTPUT_DIR, f"{outliers_id}.csv"))
     
     # Export summary dictionary
     summary_path = os.path.join(OUTPUT_DIR, f"{summary_id}.json")
@@ -77,6 +81,7 @@ async def clean_data(payload: CleanRequest):
     cleaned_preview = make_preview(cleaned_df.head(20))
     invalid_preview = make_preview(invalid_df)
     duplicates_preview = make_preview(duplicates_df)
+    outliers_preview = make_preview(outliers_df)
     
     # Filter for Needs Review records
     needs_review_df = cleaned_df[cleaned_df["Data Quality Status"] == "Needs Review"]
@@ -87,19 +92,21 @@ async def clean_data(payload: CleanRequest):
         invalid_preview=invalid_preview,
         needs_review_preview=needs_review_preview,
         duplicates_preview=duplicates_preview,
+        outliers_preview=outliers_preview,
         summary=CleaningSummaryMetrics(**summary_metrics),
         download_ids=DownloadIds(
             cleaned=cleaned_id,
             invalid=invalid_id if cleaning_options_dict.get("generate_invalid_file", True) else None,
             duplicates=duplicates_id if cleaning_options_dict.get("generate_duplicate_file", True) else None,
-            summary=summary_id
+            summary=summary_id,
+            outliers=outliers_id
         )
     )
 
 @router.post("/promote-lead", response_model=CleanResponse)
 async def promote_lead(payload: PromoteRequest):
     """
-    Promotes or updates a lead (from quarantined invalid list or cleaned list) by re-validating the user's manual edits.
+    Promotes or updates a lead (from quarantined invalid list, outliers list, or cleaned list) by re-validating the user's manual edits.
     Updates the files on disk and returns updated previews + summary metrics.
     """
     session_id = payload.session_id
@@ -112,6 +119,7 @@ async def promote_lead(payload: PromoteRequest):
     cleaned_path = os.path.join(OUTPUT_DIR, f"{session_id}-cleaned.csv")
     invalid_path = os.path.join(OUTPUT_DIR, f"{session_id}-invalid.csv")
     duplicates_path = os.path.join(OUTPUT_DIR, f"{session_id}-duplicates.csv")
+    outliers_path = os.path.join(OUTPUT_DIR, f"{session_id}-outliers.csv")
     summary_path = os.path.join(OUTPUT_DIR, f"{session_id}-summary.json")
     
     if not os.path.exists(cleaned_path) or not os.path.exists(invalid_path) or not os.path.exists(summary_path):
@@ -119,9 +127,15 @@ async def promote_lead(payload: PromoteRequest):
         
     cleaned_df = pd.read_csv(cleaned_path)
     invalid_df = pd.read_csv(invalid_path)
+    outliers_df = pd.read_csv(outliers_path) if os.path.exists(outliers_path) else pd.DataFrame()
     
     # Resolve the target dataframe
-    target_df = invalid_df if source == "invalid" else cleaned_df
+    if source == "invalid":
+        target_df = invalid_df
+    elif source == "outliers":
+        target_df = outliers_df
+    else:
+        target_df = cleaned_df
     
     if row_index < 0 or row_index >= len(target_df):
         raise HTTPException(status_code=400, detail=f"Invalid row index in source '{source}'.")
@@ -130,122 +144,174 @@ async def promote_lead(payload: PromoteRequest):
     from app.utils.validators import clean_email
     from app.utils.phone_cleaners import clean_and_split_phone
     
-    is_valid = True
-    remarks = []
+    force_invalid = updated_row.get("Data Quality Status") == "Invalid"
     
-    # Process email/phone corrections
-    for config in configs_list:
-        clean_type = config.get("clean_type")
-        out_name = config.get("output_name")
+    if force_invalid:
+        is_valid = True
+        status = "Invalid"
+        grade = "Quarantined"
+        remarks_text = "Manually Quarantined (Excluded Outlier)"
+    else:
+        is_valid = True
+        remarks = []
         
-        if clean_type == "Email" and cleaning_options_dict.get("validate_emails", True):
-            email_val = updated_row.get(out_name, "")
-            if email_val:
-                cleaned_em, email_ok = clean_email(str(email_val))
-                if not email_ok:
-                    is_valid = False
-                    remarks.append(f"Invalid email format: '{email_val}'")
-                else:
-                    updated_row[out_name] = cleaned_em
-                    
-        elif clean_type in ["Phone Number", "Mobile Number"] and cleaning_options_dict.get("validate_phones", True):
-            phone_val = updated_row.get(out_name, "")
-            if phone_val:
-                cc, local_num, phone_ok = clean_and_split_phone(str(phone_val))
-                if not phone_ok:
-                    is_valid = False
-                    remarks.append(f"Invalid phone format: '{phone_val}'")
-                else:
-                    updated_row[f"{out_name} Country Code"] = cc
-                    updated_row[out_name] = local_num
-                    
-        elif clean_type == "Date (DD-MM-YYYY)":
-            from app.utils.date_cleaners import clean_date_string
-            date_val = updated_row.get(out_name, "")
-            if date_val:
-                date_part, _, date_ok = clean_date_string(str(date_val))
-                if not date_ok:
-                    is_valid = False
-                    remarks.append(f"Invalid date format: '{date_val}'")
-                else:
-                    updated_row[out_name] = date_part
-                    
-        elif clean_type == "Date (Split Date & Time)":
-            from app.utils.date_cleaners import clean_date_string
-            date_val = updated_row.get(out_name, "")
-            time_val = updated_row.get(f"{out_name} Time", "")
-            if date_val or time_val:
-                combined = f"{date_val} {time_val}".strip()
-                date_part, time_part, date_ok = clean_date_string(combined)
-                if not date_ok:
-                    is_valid = False
-                    remarks.append(f"Invalid date/time format: '{combined}'")
-                else:
-                    updated_row[out_name] = date_part
-                    updated_row[f"{out_name} Time"] = time_part
-                    
-    # Minimum Contact Rule check
-    email_val = ""
-    phone_val = ""
-    linkedin_val = ""
-    company_val = ""
-    
-    for config in configs_list:
-        clean_type = config.get("clean_type")
-        out_name = config.get("output_name")
-        if clean_type == "Email":
-            email_val = updated_row.get(out_name, "")
-        elif clean_type in ["Phone Number", "Mobile Number"]:
-            cc = updated_row.get(f"{out_name} Country Code", "")
-            local = updated_row.get(out_name, "")
-            phone_val = f"{cc}{local}" if cc else local
-        elif clean_type == "LinkedIn Profile URL":
-            linkedin_val = updated_row.get(out_name, "")
-        elif clean_type == "Company Name":
-            company_val = updated_row.get(out_name, "")
+        # Process email/phone corrections
+        for config in configs_list:
+            clean_type = config.get("clean_type")
+            out_name = config.get("output_name")
             
-    has_phone = bool(phone_val)
-    has_email = bool(email_val)
-    has_linkedin = bool(linkedin_val)
-    has_company = bool(company_val)
-    
-    has_min_contact = (
-        has_phone or 
-        has_email or 
-        has_linkedin or 
-        (has_company and has_linkedin)
-    )
-    
-    if not has_min_contact:
-        is_valid = False
-        remarks.append("Missing all contact methods (no Phone, Email, or LinkedIn)")
+            if clean_type == "Email" and cleaning_options_dict.get("validate_emails", True):
+                email_val = updated_row.get(out_name, "")
+                if email_val:
+                    cleaned_em, email_ok = clean_email(str(email_val))
+                    if not email_ok:
+                        is_valid = False
+                        remarks.append(f"Invalid email format: '{email_val}'")
+                    else:
+                        updated_row[out_name] = cleaned_em
+                        
+            elif clean_type in ["Phone Number", "Mobile Number"] and cleaning_options_dict.get("validate_phones", True):
+                phone_val = updated_row.get(out_name, "")
+                if phone_val:
+                    cc, local_num, phone_ok = clean_and_split_phone(str(phone_val))
+                    if not phone_ok:
+                        is_valid = False
+                        remarks.append(f"Invalid phone format: '{phone_val}'")
+                    else:
+                        updated_row[f"{out_name} Country Code"] = cc
+                        updated_row[out_name] = local_num
+                        
+            elif clean_type == "Date (DD-MM-YYYY)":
+                from app.utils.date_cleaners import clean_date_string
+                date_val = updated_row.get(out_name, "")
+                if date_val:
+                    date_part, _, date_ok = clean_date_string(str(date_val))
+                    if not date_ok:
+                        is_valid = False
+                        remarks.append(f"Invalid date format: '{date_val}'")
+                    else:
+                        updated_row[out_name] = date_part
+                        
+            elif clean_type == "Date (Split Date & Time)":
+                from app.utils.date_cleaners import clean_date_string
+                date_val = updated_row.get(out_name, "")
+                time_val = updated_row.get(f"{out_name} Time", "")
+                if date_val or time_val:
+                    combined = f"{date_val} {time_val}".strip()
+                    date_part, time_part, date_ok = clean_date_string(combined)
+                    if not date_ok:
+                        is_valid = False
+                        remarks.append(f"Invalid date/time format: '{combined}'")
+                    else:
+                        updated_row[out_name] = date_part
+                        updated_row[f"{out_name} Time"] = time_part
+                        
+        # Minimum Contact and Identity Checks
+        email_val = ""
+        phone_val = ""
+        linkedin_val = ""
+        company_val = ""
+        first_val = ""
+        last_val = ""
+        fullname_val = ""
+        job_val = ""
         
-    if not is_valid:
-        raise HTTPException(status_code=400, detail="; ".join(remarks))
+        for config in configs_list:
+            clean_type = config.get("clean_type")
+            out_name = config.get("output_name")
+            if clean_type == "Email":
+                email_val = updated_row.get(out_name, "")
+            elif clean_type in ["Phone Number", "Mobile Number"]:
+                cc = updated_row.get(f"{out_name} Country Code", "")
+                local = updated_row.get(out_name, "")
+                phone_val = f"{cc}{local}" if cc else local
+            elif clean_type == "LinkedIn Profile URL":
+                linkedin_val = updated_row.get(out_name, "")
+            elif clean_type == "Company Name":
+                company_val = updated_row.get(out_name, "")
+            elif clean_type == "First Name":
+                first_val = updated_row.get(out_name, "")
+            elif clean_type == "Last Name":
+                last_val = updated_row.get(out_name, "")
+            elif clean_type == "Full Name":
+                fullname_val = updated_row.get(out_name, "")
+            elif clean_type == "Job Title":
+                job_val = updated_row.get(out_name, "")
+                
+        has_phone = bool(phone_val)
+        has_email = bool(email_val)
+        has_linkedin = bool(linkedin_val)
+        has_company = bool(company_val)
+        has_name = (bool(first_val) and bool(last_val)) or bool(fullname_val)
+        has_job = bool(job_val)
+        
+        has_any_valid_contact = has_phone or has_email or has_linkedin
+        has_full_identity = has_name and has_job and has_company
+        
+        # If promoting an outlier or resolving an error, check manual search readiness
+        is_ready_for_manual = (not has_any_valid_contact) and has_full_identity
+        
+        # Useless condition
+        if not has_any_valid_contact and not has_full_identity:
+            is_valid = False
+            remarks.append("Missing all contact methods and core identity fields")
+            
+        if not is_valid:
+            raise HTTPException(status_code=400, detail="; ".join(remarks))
+            
+        # Recalculate Lead Grade
+        if has_any_valid_contact:
+            if has_full_identity and not remarks:
+                grade = "Grade A"
+                status = "Valid"
+                remarks_text = "Record is clean"
+            else:
+                grade = "Grade B"
+                status = "Needs Review" if remarks else "Valid"
+                remarks_text = "; ".join(remarks) if remarks else "Record is clean"
+        else:
+            grade = "Grade C"
+            status = "Needs Review"
+            remarks_text = "No direct contact info (needs manual LinkedIn search)"
         
     # --- SUCCESSFUL UPDATE / PROMOTION ---
-    if source == "invalid":
-        # Remove from invalid list
-        invalid_df = invalid_df.drop(invalid_df.index[row_index]).reset_index(drop=True)
+    if source == "invalid" or source == "outliers":
+        # Remove from respective source list
+        if source == "invalid":
+            invalid_df = invalid_df.drop(invalid_df.index[row_index]).reset_index(drop=True)
+        else:
+            outliers_df = outliers_df.drop(outliers_df.index[row_index]).reset_index(drop=True)
         
         # Standardize and promote
-        updated_row["Data Quality Status"] = "Valid"
-        updated_row["Cleaning Remarks"] = "Record is clean (Manually Promoted)"
+        updated_row["Data Quality Status"] = status
+        updated_row["Cleaning Remarks"] = f"{remarks_text} (Manually Promoted)" if status != "Invalid" else remarks_text
+        updated_row["Lead Grade"] = grade
         
-        # Create standard row dictionary
-        clean_row_dict = {}
-        for col in cleaned_df.columns:
-            val = updated_row.get(col, "")
-            if pd.isna(val):
-                val = ""
-            clean_row_dict[col] = val
-            
-        new_clean_row_df = pd.DataFrame([clean_row_dict])
-        cleaned_df = pd.concat([cleaned_df, new_clean_row_df], ignore_index=True)
+        if status == "Invalid":
+            # Add to invalid list
+            invalid_row_dict = {}
+            for col in invalid_df.columns:
+                val = updated_row.get(col, "")
+                if pd.isna(val):
+                    val = ""
+                invalid_row_dict[col] = val
+            new_invalid_row_df = pd.DataFrame([invalid_row_dict])
+            invalid_df = pd.concat([invalid_df, new_invalid_row_df], ignore_index=True)
+        else:
+            # Create standard row dictionary
+            clean_row_dict = {}
+            for col in cleaned_df.columns:
+                val = updated_row.get(col, "")
+                if pd.isna(val):
+                    val = ""
+                clean_row_dict[col] = val
+            new_clean_row_df = pd.DataFrame([clean_row_dict])
+            cleaned_df = pd.concat([cleaned_df, new_clean_row_df], ignore_index=True)
     else:
         # source == "cleaned": Update in-place
-        updated_row["Data Quality Status"] = "Valid"
-        updated_row["Cleaning Remarks"] = "Record is clean (Manually Corrected)"
+        updated_row["Data Quality Status"] = status
+        updated_row["Cleaning Remarks"] = f"{remarks_text} (Manually Corrected)"
+        updated_row["Lead Grade"] = grade
         
         for col in cleaned_df.columns:
             val = updated_row.get(col, "")
@@ -256,6 +322,8 @@ async def promote_lead(payload: PromoteRequest):
     # Save files back to disk
     export_csv(cleaned_df, cleaned_path)
     export_csv(invalid_df, invalid_path)
+    if os.path.exists(outliers_path) or source == "outliers":
+        export_csv(outliers_df, outliers_path)
     
     # Load and update metrics in summary
     with open(summary_path, "r") as f:
@@ -265,6 +333,7 @@ async def promote_lead(payload: PromoteRequest):
     summary_metrics["valid_records"] = int(len(cleaned_df[cleaned_df["Data Quality Status"] == "Valid"]))
     summary_metrics["needs_review"] = int(len(cleaned_df[cleaned_df["Data Quality Status"] == "Needs Review"]))
     summary_metrics["invalid_records"] = len(invalid_df)
+    summary_metrics["outliers_found"] = len(outliers_df)
     summary_metrics["total_after_cleaning"] = len(cleaned_df)
     
     # Recount invalid email/phone counters
@@ -299,6 +368,7 @@ async def promote_lead(payload: PromoteRequest):
         
     cleaned_preview = make_preview(cleaned_df.head(20))
     invalid_preview = make_preview(invalid_df)
+    outliers_preview = make_preview(outliers_df)
     
     # Load duplicates if file exists
     duplicates_df = pd.read_csv(duplicates_path) if os.path.exists(duplicates_path) else pd.DataFrame()
@@ -312,11 +382,13 @@ async def promote_lead(payload: PromoteRequest):
         invalid_preview=invalid_preview,
         needs_review_preview=needs_review_preview,
         duplicates_preview=duplicates_preview,
+        outliers_preview=outliers_preview,
         summary=CleaningSummaryMetrics(**summary_metrics),
         download_ids=DownloadIds(
             cleaned=f"{session_id}-cleaned",
             invalid=f"{session_id}-invalid" if cleaning_options_dict.get("generate_invalid_file", True) else None,
             duplicates=f"{session_id}-duplicates" if cleaning_options_dict.get("generate_duplicate_file", True) else None,
-            summary=f"{session_id}-summary"
+            summary=f"{session_id}-summary",
+            outliers=f"{session_id}-outliers"
         )
     )

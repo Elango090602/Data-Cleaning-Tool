@@ -44,6 +44,14 @@ export default function CleaningSummary({ summary, onCardClick }) {
       tab: "quarantine"
     },
     {
+      label: "Outliers Detected",
+      value: summary.outliers_found || 0,
+      icon: "troubleshoot",
+      bgClass: "bg-rose-500/10 border-rose-500/20 cursor-pointer hover:border-rose-500/40 hover:bg-rose-500/20",
+      textClass: "text-rose-700 font-bold",
+      tab: "outliers"
+    },
+    {
       label: "Duplicates Removed",
       value: summary.duplicates_removed,
       icon: "content_copy",
