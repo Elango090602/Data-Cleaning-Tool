@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function DataPreview({ rows, title = "Data Preview", totalRows = null, visibleColumns = null }) {
+export default function DataPreview({ rows, title = "Data Preview", totalRows = null, visibleColumns = null, onColumnClick }) {
   if (!rows || rows.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center p-lg text-secondary font-body-sm">
@@ -121,14 +121,19 @@ export default function DataPreview({ rows, title = "Data Preview", totalRows = 
         <table className="w-full text-left border-collapse min-w-[700px]">
           <thead className="sticky top-0 bg-surface z-10 border-b border-surface-variant">
             <tr>
-              {columns.map((col) => (
-                <th 
-                  key={col} 
-                  className="font-label-caps text-label-caps text-on-surface-variant px-md py-sm bg-surface-container-low whitespace-nowrap border-r border-surface-variant/40"
-                >
-                  {col}
-                </th>
-              ))}
+              {columns.map((col) => {
+                const baseCol = col.endsWith(" Time") ? col.slice(0, -5) : col;
+                return (
+                  <th 
+                    key={col} 
+                    onClick={() => onColumnClick && onColumnClick(baseCol)}
+                    className="font-label-caps text-label-caps text-on-surface-variant px-md py-sm bg-surface-container-low whitespace-nowrap border-r border-surface-variant/40 cursor-pointer hover:bg-surface-container-high hover:text-primary transition-all duration-150 select-none"
+                    title={`Click to find '${baseCol}' in Column Settings`}
+                  >
+                    {col}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody className="font-table-data text-table-data text-on-background">

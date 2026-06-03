@@ -23,12 +23,28 @@ const CLEAN_RULE_TYPES = [
   { value: "Date (Split Date & Time)", label: "Date (Split Date & Time)" }
 ];
 
-export default function FieldMapping({ columnConfigs, setColumnConfigs, onResetSchema }) {
+export default function FieldMapping({ columnConfigs, setColumnConfigs, onResetSchema, scrollToColumn }) {
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [isDraggable, setIsDraggable] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const scrollContainerRef = useRef(null);
+
+  React.useEffect(() => {
+    if (scrollToColumn && scrollToColumn.name) {
+      setSearchQuery("");
+      setTimeout(() => {
+        const element = document.getElementById(`col-card-${scrollToColumn.name}`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+          element.classList.add("!bg-indigo-50/70", "!border-indigo-600", "ring-4", "ring-indigo-600/10");
+          setTimeout(() => {
+            element.classList.remove("!bg-indigo-50/70", "!border-indigo-600", "ring-4", "ring-indigo-600/10");
+          }, 2000);
+        }
+      }, 100);
+    }
+  }, [scrollToColumn]);
 
   const handleToggleInclude = (originalIndex) => {
     const updated = [...columnConfigs];
@@ -217,6 +233,7 @@ export default function FieldMapping({ columnConfigs, setColumnConfigs, onResetS
             return (
               <div 
                 key={config.original_name} 
+                id={`col-card-${config.original_name}`}
                 draggable={canDrag}
                 onDragStart={(e) => handleDragStart(e, originalIndex)}
                 onDragEnd={handleDragEnd}

@@ -20,6 +20,7 @@ export default function App({ onBackToLanding, onLogout }) {
   const [originalColumnConfigs, setOriginalColumnConfigs] = useState([]);
   const [previewRows, setPreviewRows] = useState([]);
   const [totalRows, setTotalRows] = useState(0);
+  const [scrollToColumn, setScrollToColumn] = useState(null);
   
   const [cleaningOptions, setCleaningOptions] = useState({
     validate_emails: true,
@@ -107,6 +108,21 @@ export default function App({ onBackToLanding, onLogout }) {
       );
       if (matchedField) {
         recommendedType = matchedField;
+      }
+      if (!recommendedType) {
+        const colClean = col.toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (
+          colClean.includes("date") ||
+          colClean.includes("doj") ||
+          colClean.includes("timestamp") ||
+          colClean.includes("createdat") ||
+          colClean.includes("updatedat") ||
+          colClean.includes("joiningdate") ||
+          colClean.includes("hiredate") ||
+          (colClean.includes("time") && !colClean.includes("lifetime") && !colClean.includes("uptime"))
+        ) {
+          recommendedType = "Date (DD-MM-YYYY)";
+        }
       }
       return {
         original_name: col,
@@ -586,6 +602,7 @@ export default function App({ onBackToLanding, onLogout }) {
                     columnConfigs={columnConfigs}
                     setColumnConfigs={setColumnConfigs}
                     onResetSchema={handleResetSchema}
+                    scrollToColumn={scrollToColumn}
                   />
                 </div>
                 
@@ -596,6 +613,7 @@ export default function App({ onBackToLanding, onLogout }) {
                     title="Import Preview Schema" 
                     totalRows={totalRows}
                     visibleColumns={columnConfigs.filter(c => c.included).map(c => c.original_name)}
+                    onColumnClick={(col) => setScrollToColumn({ name: col, timestamp: Date.now() })}
                   />
                 </div>
               </div>
