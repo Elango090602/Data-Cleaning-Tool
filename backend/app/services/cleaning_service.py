@@ -136,7 +136,7 @@ def clean_value_by_field(field_name: str, raw_val: Any) -> Tuple[str, bool, str]
         cleaned = clean_location(val_str, is_country=True)
         return cleaned, True, ""
         
-    elif field_name == "Date (YYYY-MM-DD)":
+    elif field_name == "Date (DD-MM-YYYY)":
         from app.utils.date_cleaners import clean_date_string
         date_part, _, is_val = clean_date_string(val_str)
         warning = "" if is_val else f"Invalid date format: '{val_str}'"
@@ -321,7 +321,7 @@ def process_cleaning_pipeline(
                                 row_remarks.append(warning)
                                 
                         # Date validation checks
-                        elif clean_type in ["Date (YYYY-MM-DD)", "Date (Split Date & Time)"]:
+                        elif clean_type in ["Date (DD-MM-YYYY)", "Date (Split Date & Time)"]:
                             if not is_val:
                                 is_row_needs_review = True
                                 row_remarks.append(warning)

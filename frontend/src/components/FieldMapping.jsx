@@ -19,7 +19,7 @@ const CLEAN_RULE_TYPES = [
   { value: "Employee Size", label: "Employee Size (Numeric)" },
   { value: "Revenue", label: "Revenue (Numeric)" },
   { value: "Lead Source", label: "Lead Source (Clean Casing)" },
-  { value: "Date (YYYY-MM-DD)", label: "Date (YYYY-MM-DD)" },
+  { value: "Date (DD-MM-YYYY)", label: "Date (DD-MM-YYYY)" },
   { value: "Date (Split Date & Time)", label: "Date (Split Date & Time)" }
 ];
 

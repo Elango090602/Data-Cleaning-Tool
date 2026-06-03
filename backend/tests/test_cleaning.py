@@ -183,9 +183,9 @@ def test_export_xlsx():
 def test_date_cleaning():
     from app.utils.date_cleaners import clean_date_string
     test_cases = [
-        ("1988-10-01T00:00:00", "1988-10-01", "00:00:00", True),
-        ("2023-06-01 12:30:15", "2023-06-01", "12:30:15", True),
-        ("2025-12-01", "2025-12-01", "00:00:00", True),
+        ("1988-10-01T00:00:00", "01-10-1988", "00:00:00", True),
+        ("2023-06-01 12:30:15", "01-06-2023", "12:30:15", True),
+        ("2025-12-01", "01-12-2025", "00:00:00", True),
         ("invalid-date-format", "", "", False),
         ("", "", "", False),
         (None, "", "", False)
@@ -207,7 +207,7 @@ def test_date_pipeline():
     column_configs = [
         {"original_name": "Email", "output_name": "Email", "clean_type": "Email", "included": True},
         {"original_name": "Job Start Date", "output_name": "Start Date", "clean_type": "Date (Split Date & Time)", "included": True},
-        {"original_name": "Hire Date", "output_name": "Hire Date", "clean_type": "Date (YYYY-MM-DD)", "included": True}
+        {"original_name": "Hire Date", "output_name": "Hire Date", "clean_type": "Date (DD-MM-YYYY)", "included": True}
     ]
     
     cleaned_df, _, _, _ = process_cleaning_pipeline(
@@ -222,12 +222,12 @@ def test_date_pipeline():
     assert "Hire Date" in cleaned_df.columns
     
     # Assert values
-    assert cleaned_df.iloc[0]["Start Date"] == "1988-10-01"
+    assert cleaned_df.iloc[0]["Start Date"] == "01-10-1988"
     assert cleaned_df.iloc[0]["Start Date Time"] == "00:00:00"
-    assert cleaned_df.iloc[0]["Hire Date"] == "2023-06-01"
+    assert cleaned_df.iloc[0]["Hire Date"] == "01-06-2023"
     
     # Assert invalid date handling (warning mapped)
-    assert cleaned_df.iloc[1]["Start Date"] == "2025-12-01"
+    assert cleaned_df.iloc[1]["Start Date"] == "01-12-2025"
     assert cleaned_df.iloc[1]["Hire Date"] == ""
     assert "Invalid date format" in cleaned_df.iloc[1]["Cleaning Remarks"]
     assert cleaned_df.iloc[1]["Data Quality Status"] == "Needs Review"

@@ -159,7 +159,7 @@ async def promote_lead(payload: PromoteRequest):
                     updated_row[f"{out_name} Country Code"] = cc
                     updated_row[out_name] = local_num
                     
-        elif clean_type == "Date (YYYY-MM-DD)":
+        elif clean_type == "Date (DD-MM-YYYY)":
             from app.utils.date_cleaners import clean_date_string
             date_val = updated_row.get(out_name, "")
             if date_val:

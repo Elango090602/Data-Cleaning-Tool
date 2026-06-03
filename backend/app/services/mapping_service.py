@@ -19,6 +19,7 @@ MAPPING_HINTS = {
     "Employee Size":        ["employeesize", "employees", "companysize", "headcount", "numemployees"],
     "Revenue":              ["revenue", "annualrevenue", "companyrevenue"],
     "Lead Source":          ["leadsource", "source", "channel"],
+    "Date (DD-MM-YYYY)":    ["date", "startdate", "enddate", "createdat", "updatedat", "timestamp", "hiredate", "doj", "joiningdate"],
 }
 
 def normalize_string(s: str) -> str:

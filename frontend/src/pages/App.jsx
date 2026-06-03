@@ -362,22 +362,37 @@ export default function App({ onBackToLanding, onLogout }) {
 
       // 4. Normalize Dates
       const dateOnlyColumns = columnConfigs
-        .filter(c => c.included && c.clean_type === "Date (YYYY-MM-DD)")
+        .filter(c => c.included && c.clean_type === "Date (DD-MM-YYYY)")
         .map(c => c.original_name);
         
       const dateSplitColumns = columnConfigs
         .filter(c => c.included && c.clean_type === "Date (Split Date & Time)")
         .map(c => c.original_name);
 
+      const formatDateJS = (val) => {
+        if (!val) return "";
+        let datePart = val;
+        if (val.includes("T")) datePart = val.split("T")[0];
+        else if (val.includes(" ")) datePart = val.split(" ")[0];
+        
+        const match = datePart.match(/^(\d{4})[./\-](\d{1,2})[./\-](\d{1,2})$/);
+        if (match) {
+          const [_, y, m, d] = match;
+          return `${d.padStart(2, "0")}-${m.padStart(2, "0")}-${y}`;
+        }
+        
+        const matchDDMM = datePart.match(/^(\d{1,2})[./\-](\d{1,2})[./\-](\d{4})$/);
+        if (matchDDMM) {
+          const [_, d, m, y] = matchDDMM;
+          return `${d.padStart(2, "0")}-${m.padStart(2, "0")}-${y}`;
+        }
+        return datePart;
+      };
+
       dateOnlyColumns.forEach(col => {
         let val = String(newRow[col] || "").trim();
         if (val && val.toLowerCase() !== "nan" && val.toLowerCase() !== "null") {
-          if (val.includes("T")) {
-            val = val.split("T")[0];
-          } else if (val.includes(" ")) {
-            val = val.split(" ")[0];
-          }
-          newRow[col] = val;
+          newRow[col] = formatDateJS(val);
         }
       });
 
@@ -395,7 +410,7 @@ export default function App({ onBackToLanding, onLogout }) {
             datePart = parts[0];
             timePart = parts[1];
           }
-          newRow[col] = datePart;
+          newRow[col] = formatDateJS(datePart);
           newRow[`${col} Time`] = timePart;
         } else {
           newRow[`${col} Time`] = "";
