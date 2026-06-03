@@ -309,3 +309,23 @@ def test_grading_and_outliers():
     assert row_prashant["Lead Grade"] == "Grade C"
     assert row_prashant["Data Quality Status"] == "Needs Review"
 
+
+# 14. test_multi_file_upload
+def test_multi_file_upload():
+    csv_data1 = "Person First Name,Person Last Name,Email Address\nJohn,Doe,john@example.com\n"
+    csv_data2 = "Person First Name,Person Last Name,Email Address\nJane,Smith,jane@example.com\n"
+    
+    file1 = ("leads1.csv", io.BytesIO(csv_data1.encode("utf-8")), "text/csv")
+    file2 = ("leads2.csv", io.BytesIO(csv_data2.encode("utf-8")), "text/csv")
+    
+    response = client.post(
+        "/api/upload", 
+        files=[("files", file1), ("files", file2)]
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "session_id" in data
+    assert data["total_rows"] == 2
+    assert "leads1.csv" in data["file_name"]
+    assert "leads2.csv" in data["file_name"]
+

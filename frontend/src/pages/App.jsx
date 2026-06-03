@@ -126,11 +126,26 @@ export default function App({ onBackToLanding, onLogout }) {
           recommendedType = "Date (DD-MM-YYYY)";
         }
       }
+
+      // Check if this column should be checked by default (only specific 12 fields)
+      const colClean = col.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const recClean = recommendedType.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const targets = [
+        "firstname", "lastname", "fullname", "jobtitle", "companyname", "email",
+        "phonenumber", "mobilenumber", "phone", "mobile", "linkedin", "state",
+        "industry", "country", "website", "companywebsite", "companylinkedin"
+      ];
+      const isDefaultChecked = targets.some(t => 
+        colClean.includes(t) || 
+        recClean.includes(t) || 
+        t.includes(colClean)
+      );
+
       return {
         original_name: col,
         output_name: col, // Keeps exact original header name by default
         clean_type: recommendedType, // Matches standard rules if recommended, else "" (None)
-        included: true // Default all raw columns as active/included
+        included: isDefaultChecked // Only check matching fields by default
       };
     });
     setColumnConfigs(initialConfigs);

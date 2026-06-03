@@ -78,7 +78,7 @@ async def clean_data(payload: CleanRequest):
         df_copy["original_df_index"] = df_copy.index
         return clean_nans_and_numpy(df_copy.to_dict(orient="records"))
         
-    cleaned_preview = make_preview(cleaned_df.head(20))
+    cleaned_preview = make_preview(cleaned_df.head(1000))
     invalid_preview = make_preview(invalid_df)
     duplicates_preview = make_preview(duplicates_df)
     outliers_preview = make_preview(outliers_df)
@@ -382,7 +382,7 @@ async def promote_lead(payload: PromoteRequest):
         df_copy["original_df_index"] = df_copy.index
         return clean_nans_and_numpy(df_copy.to_dict(orient="records"))
         
-    cleaned_preview = make_preview(cleaned_df.head(20))
+    cleaned_preview = make_preview(cleaned_df.head(1000))
     invalid_preview = make_preview(invalid_df)
     outliers_preview = make_preview(outliers_df)
     
@@ -526,7 +526,7 @@ async def bulk_resolve(payload: CleanRequest):
         df_copy["original_df_index"] = df_copy.index
         return clean_nans_and_numpy(df_copy.to_dict(orient="records"))
         
-    cleaned_preview = make_preview(cleaned_df.head(20))
+    cleaned_preview = make_preview(cleaned_df.head(1000))
     invalid_preview = make_preview(invalid_df)
     outliers_preview = make_preview(outliers_df)
     

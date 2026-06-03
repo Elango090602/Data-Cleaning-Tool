@@ -13,9 +13,15 @@ const BASE_URL = getBaseUrl();
 /**
  * Uploads a raw lead CSV or Excel file.
  */
-export async function uploadFile(file) {
+export async function uploadFile(files) {
   const formData = new FormData();
-  formData.append("file", file);
+  if (Array.isArray(files)) {
+    files.forEach((file) => {
+      formData.append("files", file);
+    });
+  } else {
+    formData.append("files", files);
+  }
 
   const response = await fetch(`${BASE_URL}/upload`, {
     method: "POST",
@@ -24,7 +30,7 @@ export async function uploadFile(file) {
 
   if (!response.ok) {
     const errData = await response.json().catch(() => ({}));
-    throw new Error(errData.detail || "Failed to upload file. Please check format and try again.");
+    throw new Error(errData.detail || "Failed to upload files. Please check format and try again.");
   }
 
   return response.json();

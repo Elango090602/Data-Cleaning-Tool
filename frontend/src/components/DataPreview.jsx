@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 
 export default function DataPreview({ rows, title = "Data Preview", totalRows = null, visibleColumns = null, onColumnClick }) {
+  const [pageSize, setPageSize] = useState(20);
+
   if (!rows || rows.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center p-lg text-secondary font-body-sm">
@@ -106,14 +108,40 @@ export default function DataPreview({ rows, title = "Data Preview", totalRows = 
     );
   }
 
+  const displayedRows = rows.slice(0, pageSize);
+
   return (
     <div className="w-full h-full flex flex-col bg-surface-container-lowest border border-surface-variant rounded-xl overflow-hidden shadow-sm min-h-[380px]">
       {/* Header Panel */}
-      <div className="bg-surface-container-low px-md py-sm border-b border-surface-variant flex justify-between items-center shrink-0">
+      <div className="bg-surface-container-low px-md py-sm border-b border-surface-variant flex justify-between items-center shrink-0 flex-wrap gap-xs">
         <h3 className="font-title-sm text-title-sm text-on-background font-bold">{title}</h3>
-        <span className="font-label-caps text-[11px] text-secondary bg-surface-variant px-sm py-[2px] rounded-full">
-          Showing {rows.length} of {totalRows || rows.length} rows
-        </span>
+        <div className="flex items-center gap-md">
+          {/* Row limit selector */}
+          <div className="flex items-center gap-xs">
+            <span className="text-[11px] font-bold text-secondary font-sans">Rows to show:</span>
+            <select
+              value={pageSize === rows.length ? "all" : pageSize}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === "all") {
+                  setPageSize(rows.length);
+                } else {
+                  setPageSize(Number(val));
+                }
+              }}
+              className="bg-white border border-outline-variant rounded px-xs py-[2px] text-[11px] font-bold text-secondary focus:outline-none focus:border-primary cursor-pointer shadow-sm"
+            >
+              <option value={20}>20</option>
+              {rows.length > 20 && <option value={50}>50</option>}
+              {rows.length > 50 && <option value={100}>100</option>}
+              <option value="all">All ({rows.length})</option>
+            </select>
+          </div>
+          
+          <span className="font-label-caps text-[11px] text-secondary bg-surface-variant px-sm py-[2px] rounded-full font-bold">
+            Showing {displayedRows.length} of {totalRows || rows.length} rows
+          </span>
+        </div>
       </div>
 
       {/* Table grid */}
@@ -137,7 +165,7 @@ export default function DataPreview({ rows, title = "Data Preview", totalRows = 
             </tr>
           </thead>
           <tbody className="font-table-data text-table-data text-on-background">
-            {rows.map((row, rIdx) => {
+            {displayedRows.map((row, rIdx) => {
               const status = row["Data Quality Status"];
               const isOriginal = status === "Original";
               const isDuplicate = status === "Duplicate";
