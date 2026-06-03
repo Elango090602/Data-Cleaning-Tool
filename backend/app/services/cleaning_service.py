@@ -430,7 +430,15 @@ def process_cleaning_pipeline(
         has_company_name = bool(clean_type_vals.get("Company Name"))
         has_full_identity = has_name and has_job_title and has_company_name
         
-        is_useless = (not has_any_valid_contact) and (not has_full_identity)
+        # Check for company info: Company Name, Company Website, or any raw column containing "company"
+        has_company_info = has_company_name or bool(clean_type_vals.get("Company Website"))
+        if not has_company_info:
+            for k, v in raw_row.items():
+                if "company" in str(k).lower() and not is_blank_value(v):
+                    has_company_info = True
+                    break
+        
+        is_useless = (not has_any_valid_contact) and not (has_name and has_company_info)
         
         has_warnings_or_errors = (
             email_error or phone_error or linkedin_error or

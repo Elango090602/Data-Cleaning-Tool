@@ -238,6 +238,8 @@ async def promote_lead(payload: PromoteRequest):
             elif clean_type == "Job Title":
                 job_val = updated_row.get(out_name, "")
                 
+        from app.services.cleaning_service import is_blank_value
+
         has_phone = bool(phone_val)
         has_email = bool(email_val)
         has_linkedin = bool(linkedin_val)
@@ -248,11 +250,25 @@ async def promote_lead(payload: PromoteRequest):
         has_any_valid_contact = has_phone or has_email or has_linkedin
         has_full_identity = has_name and has_job and has_company
         
+        # Check for company info: Company Name, Company Website, or any raw column containing "company"
+        has_company_info = has_company
+        for config in configs_list:
+            clean_type = config.get("clean_type")
+            out_name = config.get("output_name")
+            if clean_type == "Company Website" and updated_row.get(out_name):
+                has_company_info = True
+                
+        if not has_company_info:
+            for k, v in updated_row.items():
+                if "company" in str(k).lower() and not is_blank_value(v):
+                    has_company_info = True
+                    break
+        
         # If promoting an outlier or resolving an error, check manual search readiness
-        is_ready_for_manual = (not has_any_valid_contact) and has_full_identity
+        is_ready_for_manual = (not has_any_valid_contact) and has_name and has_company_info
         
         # Useless condition
-        if not has_any_valid_contact and not has_full_identity:
+        if not has_any_valid_contact and not (has_name and has_company_info):
             is_valid = False
             remarks.append("Missing all contact methods and core identity fields")
             

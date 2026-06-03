@@ -242,20 +242,22 @@ def test_grading_and_outliers():
     # Row 3: Quarantined (no contact AND missing Job Title / Company)
     # Row 4-10: Dominant corporate roles
     # Row 11: Outlier (Job Title is "Truck Driver", which is a low-level service role in a corporate list)
+    # Row 12: Grade C (no direct contact, missing Job Title, but has name and company details for manual linkedin search)
     data = [
-        {"First Name": "Alice", "Last Name": "Smith", "Job Title": "Chief Executive Officer", "Company": "Acme Corp", "Email": "alice@acme.com"},
-        {"First Name": "Bob", "Last Name": "Jones", "Job Title": "", "Company": "TechStart", "Email": "bob@tech.com"},
-        {"First Name": "Charlie", "Last Name": "Brown", "Job Title": "Director of Operations", "Company": "Globalnet", "Email": ""},
-        {"First Name": "Diana", "Last Name": "Prince", "Job Title": "", "Company": "", "Email": ""},
+        {"First Name": "Alice", "Last Name": "Smith", "Job Title": "Chief Executive Officer", "Company": "Acme Corp", "Email": "alice@acme.com", "Company LinkedIn": ""},
+        {"First Name": "Bob", "Last Name": "Jones", "Job Title": "", "Company": "TechStart", "Email": "bob@tech.com", "Company LinkedIn": ""},
+        {"First Name": "Charlie", "Last Name": "Brown", "Job Title": "Director of Operations", "Company": "Globalnet", "Email": "", "Company LinkedIn": ""},
+        {"First Name": "Diana", "Last Name": "Prince", "Job Title": "", "Company": "", "Email": "", "Company LinkedIn": ""},
         
-        {"First Name": "Edward", "Last Name": "Elric", "Job Title": "Vice President", "Company": "State Corp", "Email": "ed@state.com"},
-        {"First Name": "Fiona", "Last Name": "Gallagher", "Job Title": "Manager", "Company": "Patty's", "Email": "fiona@patty.com"},
-        {"First Name": "George", "Last Name": "Windsor", "Job Title": "Managing Director", "Company": "Royal Trust", "Email": "george@royal.com"},
-        {"First Name": "Hassan", "Last Name": "Ali", "Job Title": "President", "Company": "Emirates", "Email": "hassan@emirates.ae"},
-        {"First Name": "Ian", "Last Name": "Malcolm", "Job Title": "VP Engineering", "Company": "InGen", "Email": "ian@ingen.org"},
-        {"First Name": "Julia", "Last Name": "Roberts", "Job Title": "COO", "Company": "Hollywood", "Email": "julia@hollywood.com"},
+        {"First Name": "Edward", "Last Name": "Elric", "Job Title": "Vice President", "Company": "State Corp", "Email": "ed@state.com", "Company LinkedIn": ""},
+        {"First Name": "Fiona", "Last Name": "Gallagher", "Job Title": "Manager", "Company": "Patty's", "Email": "fiona@patty.com", "Company LinkedIn": ""},
+        {"First Name": "George", "Last Name": "Windsor", "Job Title": "Managing Director", "Company": "Royal Trust", "Email": "george@royal.com", "Company LinkedIn": ""},
+        {"First Name": "Hassan", "Last Name": "Ali", "Job Title": "President", "Company": "Emirates", "Email": "hassan@emirates.ae", "Company LinkedIn": ""},
+        {"First Name": "Ian", "Last Name": "Malcolm", "Job Title": "VP Engineering", "Company": "InGen", "Email": "ian@ingen.org", "Company LinkedIn": ""},
+        {"First Name": "Julia", "Last Name": "Roberts", "Job Title": "COO", "Company": "Hollywood", "Email": "julia@hollywood.com", "Company LinkedIn": ""},
         
-        {"First Name": "Kevin", "Last Name": "Bacon", "Job Title": "Truck Driver", "Company": "Six Degrees", "Email": "kevin@six.com"}
+        {"First Name": "Kevin", "Last Name": "Bacon", "Job Title": "Truck Driver", "Company": "Six Degrees", "Email": "kevin@six.com", "Company LinkedIn": ""},
+        {"First Name": "Prashant", "Last Name": "Bisen", "Job Title": "", "Company": "Gmmco", "Email": "", "Company LinkedIn": "http://www.linkedin.com/company/gmmco"}
     ]
     df = pd.DataFrame(data)
     column_configs = [
@@ -263,7 +265,8 @@ def test_grading_and_outliers():
         {"original_name": "Last Name", "output_name": "Last Name", "clean_type": "Last Name", "included": True},
         {"original_name": "Job Title", "output_name": "Job Title", "clean_type": "Job Title", "included": True},
         {"original_name": "Company", "output_name": "Company Name", "clean_type": "Company Name", "included": True},
-        {"original_name": "Email", "output_name": "Email", "clean_type": "Email", "included": True}
+        {"original_name": "Email", "output_name": "Email", "clean_type": "Email", "included": True},
+        {"original_name": "Company LinkedIn", "output_name": "Company LinkedIn URL", "clean_type": "None", "included": True}
     ]
     
     cleaned_df, invalid_df, duplicates_df, outliers_df, summary = process_cleaning_pipeline(
@@ -272,15 +275,14 @@ def test_grading_and_outliers():
         options={"remove_duplicates": False, "validate_emails": True}
     )
     
-    # Combined final clean list has 9 elements (Row 0, 1, 2, 4, 5, 6, 7, 8, 9 except Row 3 (Quarantined) and Row 10 (Outlier))
-    # Row 3 lacks contact and core details (no Company/Job) -> Quarantined (invalid_df)
+    # Diana Prince lacks contact and core details (no Company/Job) -> Quarantined (invalid_df)
     assert len(invalid_df) == 1
-    # Row 10 is classified as an outlier ("Truck Driver" in executive list)
+    # Kevin Bacon is classified as an outlier ("Truck Driver" in executive list)
     assert len(outliers_df) == 1
     assert outliers_df.iloc[0]["Job Title"] == "Truck Driver"
     
-    # We have 9 clean records (including Grade C manual work and Grade B warnings)
-    assert len(cleaned_df) == 9
+    # We have 10 clean records (including Grade C manual work and Grade B warnings)
+    assert len(cleaned_df) == 10
     
     # Check Grades
     # Row 0: Grade A
@@ -301,4 +303,9 @@ def test_grading_and_outliers():
     # Row 3 in invalid_df should be Quarantined
     assert invalid_df.iloc[0]["Lead Grade"] == "Quarantined"
     assert invalid_df.iloc[0]["Data Quality Status"] == "Invalid"
+    
+    # Prashant Bisen: Grade C (no direct contact, missing Job Title, but has name and Company LinkedIn URL)
+    row_prashant = cleaned_df[cleaned_df["First Name"] == "Prashant"].iloc[0]
+    assert row_prashant["Lead Grade"] == "Grade C"
+    assert row_prashant["Data Quality Status"] == "Needs Review"
 
