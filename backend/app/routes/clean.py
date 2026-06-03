@@ -159,6 +159,31 @@ async def promote_lead(payload: PromoteRequest):
                     updated_row[f"{out_name} Country Code"] = cc
                     updated_row[out_name] = local_num
                     
+        elif clean_type == "Date (YYYY-MM-DD)":
+            from app.utils.date_cleaners import clean_date_string
+            date_val = updated_row.get(out_name, "")
+            if date_val:
+                date_part, _, date_ok = clean_date_string(str(date_val))
+                if not date_ok:
+                    is_valid = False
+                    remarks.append(f"Invalid date format: '{date_val}'")
+                else:
+                    updated_row[out_name] = date_part
+                    
+        elif clean_type == "Date (Split Date & Time)":
+            from app.utils.date_cleaners import clean_date_string
+            date_val = updated_row.get(out_name, "")
+            time_val = updated_row.get(f"{out_name} Time", "")
+            if date_val or time_val:
+                combined = f"{date_val} {time_val}".strip()
+                date_part, time_part, date_ok = clean_date_string(combined)
+                if not date_ok:
+                    is_valid = False
+                    remarks.append(f"Invalid date/time format: '{combined}'")
+                else:
+                    updated_row[out_name] = date_part
+                    updated_row[f"{out_name} Time"] = time_part
+                    
     # Minimum Contact Rule check
     email_val = ""
     phone_val = ""

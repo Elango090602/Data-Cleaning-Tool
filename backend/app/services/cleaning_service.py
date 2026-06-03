@@ -136,6 +136,18 @@ def clean_value_by_field(field_name: str, raw_val: Any) -> Tuple[str, bool, str]
         cleaned = clean_location(val_str, is_country=True)
         return cleaned, True, ""
         
+    elif field_name == "Date (YYYY-MM-DD)":
+        from app.utils.date_cleaners import clean_date_string
+        date_part, _, is_val = clean_date_string(val_str)
+        warning = "" if is_val else f"Invalid date format: '{val_str}'"
+        return date_part, is_val, warning
+
+    elif field_name == "Date (Split Date & Time)":
+        from app.utils.date_cleaners import clean_date_string
+        date_part, _, is_val = clean_date_string(val_str)
+        warning = "" if is_val else f"Invalid date/time format: '{val_str}'"
+        return date_part, is_val, warning
+
     # Default fallback for other text columns
     return val_str, True, ""
 
@@ -162,7 +174,12 @@ def process_cleaning_pipeline(
         clean_type = config.get("clean_type")
         if clean_type in ["Phone Number", "Mobile Number"]:
             standard_columns_to_export.append(f"{out_name} Country Code")
-        standard_columns_to_export.append(out_name)
+            standard_columns_to_export.append(out_name)
+        elif clean_type == "Date (Split Date & Time)":
+            standard_columns_to_export.append(out_name)
+            standard_columns_to_export.append(f"{out_name} Time")
+        else:
+            standard_columns_to_export.append(out_name)
         
     if "Data Quality Status" not in standard_columns_to_export:
         standard_columns_to_export.append("Data Quality Status")
@@ -260,6 +277,22 @@ def process_cleaning_pipeline(
                         # Value is blank: missing but not a format error
                         row_data[f"{out_name} Country Code"] = ""
                         row_data[out_name] = ""
+                elif clean_type == "Date (Split Date & Time)":
+                    from app.utils.date_cleaners import clean_date_string
+                    date_part, time_part, is_val = clean_date_string(raw_val)
+                    
+                    if not is_blank_value(raw_val):
+                        row_data[out_name] = date_part
+                        row_data[f"{out_name} Time"] = time_part
+                        clean_type_vals[clean_type] = date_part
+                        
+                        warning = f"Invalid date format: '{raw_val}'"
+                        if not is_val:
+                            is_row_needs_review = True
+                            row_remarks.append(warning)
+                    else:
+                        row_data[out_name] = ""
+                        row_data[f"{out_name} Time"] = ""
                 else:
                     # Non-phone standard fields
                     cleaned_val, is_val, warning = clean_value_by_field(clean_type, raw_val)
@@ -283,6 +316,12 @@ def process_cleaning_pipeline(
                                 
                         # Website validation checks
                         elif clean_type == "Company Website" and options.get("clean_websites", True):
+                            if not is_val:
+                                is_row_needs_review = True
+                                row_remarks.append(warning)
+                                
+                        # Date validation checks
+                        elif clean_type in ["Date (YYYY-MM-DD)", "Date (Split Date & Time)"]:
                             if not is_val:
                                 is_row_needs_review = True
                                 row_remarks.append(warning)

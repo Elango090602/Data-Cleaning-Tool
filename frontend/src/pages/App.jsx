@@ -359,6 +359,48 @@ export default function App({ onBackToLanding, onLogout }) {
           }
         });
       }
+
+      // 4. Normalize Dates
+      const dateOnlyColumns = columnConfigs
+        .filter(c => c.included && c.clean_type === "Date (YYYY-MM-DD)")
+        .map(c => c.original_name);
+        
+      const dateSplitColumns = columnConfigs
+        .filter(c => c.included && c.clean_type === "Date (Split Date & Time)")
+        .map(c => c.original_name);
+
+      dateOnlyColumns.forEach(col => {
+        let val = String(newRow[col] || "").trim();
+        if (val && val.toLowerCase() !== "nan" && val.toLowerCase() !== "null") {
+          if (val.includes("T")) {
+            val = val.split("T")[0];
+          } else if (val.includes(" ")) {
+            val = val.split(" ")[0];
+          }
+          newRow[col] = val;
+        }
+      });
+
+      dateSplitColumns.forEach(col => {
+        let val = String(newRow[col] || "").trim();
+        if (val && val.toLowerCase() !== "nan" && val.toLowerCase() !== "null") {
+          let datePart = val;
+          let timePart = "00:00:00";
+          if (val.includes("T")) {
+            const parts = val.split("T");
+            datePart = parts[0];
+            timePart = parts[1];
+          } else if (val.includes(" ")) {
+            const parts = val.split(" ");
+            datePart = parts[0];
+            timePart = parts[1];
+          }
+          newRow[col] = datePart;
+          newRow[`${col} Time`] = timePart;
+        } else {
+          newRow[`${col} Time`] = "";
+        }
+      });
       
       return newRow;
     });
@@ -374,6 +416,9 @@ export default function App({ onBackToLanding, onLogout }) {
         result.push(`${c.original_name} Country Code`);
       }
       result.push(c.original_name);
+      if (c.clean_type === "Date (Split Date & Time)") {
+        result.push(`${c.original_name} Time`);
+      }
     });
     
     return result;

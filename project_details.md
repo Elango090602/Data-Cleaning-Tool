@@ -47,6 +47,7 @@ LeadSanity is built using a modern, lightweight, and highly performant full-stac
     *   **Phone splitting**: Purges extensions, isolates ITU international country calling codes, and extracts clean local digits.
     *   **LinkedIn Sanitizer**: Wipes tracking arguments and trailing slashes to yield short clean profile URLs.
     *   **Website Normalizer**: Wipes `http/https/www` prefixes and structures consistent `https://` secure links.
+    *   **Date Sanitizer & Splitting**: Standardizes date formats (supporting ISO 8601 strings, delimiters, year-only inputs) to `YYYY-MM-DD`, with support for splitting date and time/hours into separate columns.
     *   **Deduplication & Blank Removal**: Isolates and flags exact duplicates into separate downloads.
 7.  **Interactive Quarantine Inspector**: Renders quarantined (invalid) or "Needs Review" records in a custom grid, allowing operators to manually edit, re-validate, and promote leads to clean sheets in real-time.
 8.  **Session Hardening**: Hash-based routing (`#app`) with a 12-hour session Time-To-Live (TTL) that retains user sessions during page refreshes and home logo clicks.
@@ -260,6 +261,7 @@ The project is set up as a monorepo under Vercel, coordinated by the root [verce
     *   *Prune/Format Phone Numbers*: Isolates plus indicators, strips country codes (e.g. +91, +1) into separate columns, and purges punctuation.
     *   *Sanitize LinkedIn Profile URLs*: Strips trailing slashes, clean paths, and strips trackers (`?ref=...`).
     *   *Normalize Web URLs*: Cleans domains and prefixes with standard secure `https://` protocols.
+    *   *Sanitize & Split Date Formats*: Cleans dates to standard `YYYY-MM-DD` format and supports splitting time components into a separate dynamic column.
     *   *Deduplication*: Strips exact identical rows.
 2.  The right panel shows a real-time preview simulation of how your dataset changes as you toggle rules on and off! Click **Process List** to run the engine.
 
