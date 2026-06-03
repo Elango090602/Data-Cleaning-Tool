@@ -166,12 +166,12 @@ def send_otp_via_email(email: str, otp: str) -> bool:
     smtp_port = int(os.getenv("SMTP_PORT", "587"))
     smtp_user = os.getenv("SMTP_USER", "").strip()
     smtp_password = os.getenv("SMTP_PASSWORD", "").replace(" ", "")
-    smtp_from_name = os.getenv("SMTP_FROM_NAME", "Lead Sanitizer App")
+    smtp_from_name = os.getenv("SMTP_FROM_NAME", "LeadSanity")
     
     if smtp_user and smtp_password and "your_gmail" not in smtp_user:
         try:
             msg = MIMEMultipart("alternative")
-            msg["Subject"] = f"{otp} is your Lead Sanitizer Verification Code"
+            msg["Subject"] = f"{otp} is your LeadSanity Verification Code"
             msg["From"] = f"{smtp_from_name} <{smtp_user}>"
             msg["To"] = email
             
